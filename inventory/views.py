@@ -768,10 +768,10 @@ class ShipView(UserPassesTestMixin, View):
             pk=order_id
         )
         
-        # Check if order is ready to ship (must be allocated or picked)
-        if order.status not in [Order.STATUS_ALLOCATED, Order.STATUS_PICKED]:
+        # Check if order is ready to ship (must be allocated, picked, or packed)
+        if order.status not in [Order.STATUS_ALLOCATED, Order.STATUS_PICKED, Order.STATUS_PACKED]:
             from django.contrib import messages
-            messages.warning(request, f"Order must be allocated or picked before shipping. Current status: {order.get_status_display()}")
+            messages.warning(request, f"Order must be allocated, picked, or packed before shipping. Current status: {order.get_status_display()}")
             from django.shortcuts import redirect
             return redirect('inventory:order-detail', pk=order_id)
         

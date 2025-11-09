@@ -18,6 +18,7 @@
             <a href="?status=new" class="btn btn-sm btn-outline-secondary {% if request.GET.status == 'new' %}active{% endif %}">New</a>
             <a href="?status=allocated" class="btn btn-sm btn-outline-secondary {% if request.GET.status == 'allocated' %}active{% endif %}">Allocated</a>
             <a href="?status=picked" class="btn btn-sm btn-outline-secondary {% if request.GET.status == 'picked' %}active{% endif %}">Picked</a>
+            <a href="?status=packed" class="btn btn-sm btn-outline-secondary {% if request.GET.status == 'packed' %}active{% endif %}">Packed</a>
             <a href="?status=shipped" class="btn btn-sm btn-outline-secondary {% if request.GET.status == 'shipped' %}active{% endif %}">Shipped</a>
             <a href="?status=delivered" class="btn btn-sm btn-outline-secondary {% if request.GET.status == 'delivered' %}active{% endif %}">Delivered</a>
             <a href="?status=cancelled" class="btn btn-sm btn-outline-secondary {% if request.GET.status == 'cancelled' %}active{% endif %}">Cancelled</a>
@@ -51,6 +52,8 @@
                             <span class="badge bg-info">Allocated</span>
                         {% elif order.status == 'picked' %}
                             <span class="badge bg-warning">Picked</span>
+                        {% elif order.status == 'packed' %}
+                            <span class="badge bg-info">Packed</span>
                         {% elif order.status == 'shipped' %}
                             <span class="badge bg-success">Shipped</span>
                         {% elif order.status == 'delivered' %}
