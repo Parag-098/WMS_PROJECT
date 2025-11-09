@@ -15,13 +15,10 @@ def get_bool(name: str, default: bool = False) -> bool:
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key")
 DEBUG = get_bool("DJANGO_DEBUG", True)
-DOCKER_MODE = get_bool("DOCKER_MODE", False) or get_bool("DOCKER", False)
-NEO4J_ENABLED = get_bool("NEO4J_ENABLED", False)
 
 _hosts_env = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
 ALLOWED_HOSTS = [h.strip() for h in _hosts_env.split(",") if h.strip()]
-if DOCKER_MODE and "0.0.0.0" not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append("0.0.0.0")
+
 
 
 # ----- Applications -----
@@ -189,13 +186,6 @@ Q_CLUSTER = {
     "label": "Django Q",
     "orm": "default",  # Use Django ORM as the broker
 }
-
-
-# ----- Neo4j (optional) -----
-if NEO4J_ENABLED:
-    NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-    NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-    NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "neo4j")
 
 
 # ----- Logging -----
