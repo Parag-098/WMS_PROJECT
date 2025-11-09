@@ -109,7 +109,7 @@ class Batch(models.Model):
 	]
 
 	item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="batches")
-	lot_no = models.CharField(max_length=64)
+	lot_no = models.CharField(max_length=64, blank=True)
 	received_qty = models.DecimalField(max_digits=12, decimal_places=3, default=Decimal("0"))
 	available_qty = models.DecimalField(max_digits=12, decimal_places=3, default=Decimal("0"))
 	expiry_date = models.DateField(null=True, blank=True)
@@ -124,6 +124,25 @@ class Batch(models.Model):
 
 	def __str__(self) -> str:  # pragma: no cover - trivial
 		return f"Batch({self.item.sku} #{self.lot_no})"
+
+	def save(self, *args, **kwargs):
+		"""Auto-generate lot number if not provided."""
+		if not self.lot_no:
+			# Generate lot number: LOT-YYYYMMDD-HHMMSS-random4
+			from datetime import datetime
+			import random
+			timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+			random_suffix = ''.join([str(random.randint(0, 9)) for _ in range(4)])
+			self.lot_no = f"LOT-{timestamp}-{random_suffix}"
+			
+			# Ensure uniqueness for this item
+			counter = 1
+			original_lot = self.lot_no
+			while Batch.objects.filter(item=self.item, lot_no=self.lot_no).exists():
+				self.lot_no = f"{original_lot}-{counter}"
+				counter += 1
+		
+		super().save(*args, **kwargs)
 
 	def reserve(self, qty: Decimal) -> Decimal:
 		"""Reserve qty units from this batch with DB-level locking.

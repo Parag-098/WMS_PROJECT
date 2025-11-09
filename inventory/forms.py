@@ -51,7 +51,16 @@ class BatchForm(forms.ModelForm):
         fields = ["item", "lot_no", "received_qty", "available_qty", "expiry_date", "status"]
         widgets = {
             "expiry_date": forms.DateInput(attrs={"type": "date"}),
+            "lot_no": forms.TextInput(attrs={
+                "placeholder": "Leave blank to auto-generate (LOT-YYYYMMDD-HHMMSS-XXXX)",
+                "class": "form-control"
+            }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make lot_no optional
+        self.fields['lot_no'].required = False
 
     def clean_expiry_date(self):
         expiry = self.cleaned_data.get("expiry_date")
@@ -75,10 +84,20 @@ class BatchForm(forms.ModelForm):
         cleaned_data = super().clean()
         received = cleaned_data.get("received_qty")
         available = cleaned_data.get("available_qty")
+        lot_no = cleaned_data.get("lot_no", "").strip()
+        item = cleaned_data.get("item")
 
         if received is not None and available is not None:
             if available > received:
                 raise ValidationError("Available quantity cannot exceed received quantity.")
+
+        # Check lot_no uniqueness only if provided
+        if lot_no and item:
+            existing = Batch.objects.filter(item=item, lot_no=lot_no)
+            if self.instance and self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+            if existing.exists():
+                raise ValidationError(f"Lot number '{lot_no}' already exists for this item.")
 
         return cleaned_data
 
