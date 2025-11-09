@@ -212,6 +212,7 @@ class Order(models.Model):
 	STATUS_NEW = "new"
 	STATUS_ALLOCATED = "allocated"
 	STATUS_PICKED = "picked"
+	STATUS_PACKED = "packed"
 	STATUS_SHIPPED = "shipped"
 	STATUS_DELIVERED = "delivered"
 	STATUS_CANCELLED = "cancelled"
@@ -219,6 +220,7 @@ class Order(models.Model):
 		(STATUS_NEW, "New"),
 		(STATUS_ALLOCATED, "Allocated"),
 		(STATUS_PICKED, "Picked"),
+		(STATUS_PACKED, "Packed"),
 		(STATUS_SHIPPED, "Shipped"),
 		(STATUS_DELIVERED, "Delivered"),
 		(STATUS_CANCELLED, "Cancelled"),

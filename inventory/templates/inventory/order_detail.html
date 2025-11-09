@@ -52,11 +52,16 @@
                 <i class="bi bi-truck"></i> Skip to Ship
             </a>
             {% endif %}
-            
+
+            {% elif order.status == 'packed' %}
+            <a href="{% url 'inventory:order-ship' order.pk %}" class="btn btn-primary">
+                <i class="bi bi-truck"></i> Step 4: Ship Order
+            </a>
+
             {% elif order.status == 'shipped' %}
             {% if user.is_staff %}
             <a href="{% url 'inventory:order-deliver' order.pk %}" class="btn btn-success">
-                <i class="bi bi-check-circle-fill"></i> Step 4: Mark as Delivered
+                <i class="bi bi-check-circle-fill"></i> Step 5: Mark as Delivered
             </a>
             {% else %}
             <span class="badge bg-primary fs-6"><i class="bi bi-truck"></i> In Transit</span>
@@ -87,6 +92,8 @@
                             <span class="badge bg-info">Allocated</span>
                         {% elif order.status == 'picked' %}
                             <span class="badge bg-warning">Picked</span>
+                        {% elif order.status == 'packed' %}
+                            <span class="badge bg-info">Packed</span>
                         {% elif order.status == 'shipped' %}
                             <span class="badge bg-success">Shipped</span>
                         {% elif order.status == 'delivered' %}

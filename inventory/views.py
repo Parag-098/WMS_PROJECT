@@ -723,12 +723,10 @@ class PackView(UserPassesTestMixin, View):
                             "qty_packed": qty_packed,
                             "total_allocated": total_allocated,
                         })
-                
-                # Update order status to PICKED after packing
-                # This allows the workflow to proceed to shipping
-                if order.status == Order.STATUS_ALLOCATED:
-                    order.status = Order.STATUS_PICKED
-                    order.save(update_fields=["status"])
+
+                # Update order status to PACKED after packing
+                order.status = Order.STATUS_PACKED
+                order.save(update_fields=["status"])
                 
                 # Add success message
                 from django.contrib import messages
