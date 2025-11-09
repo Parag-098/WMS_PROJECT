@@ -1,0 +1,25 @@
+{% if success %}
+<div class="alert alert-success">
+    <h5><i class="bi bi-check-circle"></i> Redo Successful</h5>
+    <p>Successfully redid {{ count }} operation(s).</p>
+    
+    <h6>Results:</h6>
+    <ul>
+        {% for result in results %}
+        <li>{{ result }}</li>
+        {% endfor %}
+    </ul>
+    
+    <p class="mb-0">
+        <small class="text-muted">
+            <i class="bi bi-info-circle"></i> 
+            Operations have been reapplied and moved to the undo stack.
+        </small>
+    </p>
+</div>
+{% else %}
+<div class="alert alert-danger">
+    <h5><i class="bi bi-exclamation-triangle"></i> Redo Failed</h5>
+    <p><strong>Error:</strong> {{ error_message }}</p>
+</div>
+{% endif %}

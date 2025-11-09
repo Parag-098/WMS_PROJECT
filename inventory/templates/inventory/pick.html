@@ -1,0 +1,64 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Pick Order - {{ order.order_no }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-box-seam"></i> Pick Order: {{ order.order_no }}</h2>
+    <p class="text-muted">Customer: {{ order.customer_name }} | Status: <span class="badge bg-info">{{ order.get_status_display }}</span></p>
+    
+    <hr>
+    
+    <form method="post" hx-post="{% url 'inventory:order-pick' order.id %}" hx-target="#pick-result">
+        {% csrf_token %}
+        
+        <h4>Pick List</h4>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Item SKU</th>
+                    <th>Item Name</th>
+                    <th>Batch/Lot</th>
+                    <th>Location</th>
+                    <th>Allocated Qty</th>
+                    <th>Picked Qty</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pick_item in pick_items %}
+                <tr>
+                    <td><strong>{{ pick_item.item.sku }}</strong></td>
+                    <td>{{ pick_item.item.name }}</td>
+                    <td>{{ pick_item.batch.lot_no }}</td>
+                    <td><em>Warehouse</em></td>
+                    <td>{{ pick_item.allocation.qty_allocated }} {{ pick_item.item.unit }}</td>
+                    <td>
+                        <input type="number" 
+                               name="qty_picked_{{ pick_item.allocation.id }}" 
+                               value="{{ pick_item.allocation.qty_allocated }}" 
+                               step="0.001" 
+                               min="0" 
+                               class="form-control form-control-sm" 
+                               style="width: 120px;" 
+                               required>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">No allocations found for this order.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> Confirm Pick
+            </button>
+            <a href="{% url 'inventory:item-list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+    
+    <div id="pick-result" class="mt-4"></div>
+</div>
+{% endblock %}

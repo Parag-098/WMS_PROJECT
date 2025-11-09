@@ -1,0 +1,237 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Dashboard - WarehousePro{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4" style="color: var(--text-primary); font-weight: 600;">Dashboard</h1>
+    
+    <!-- KPI Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card-modern" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Total Items</h6>
+                            <h2 class="mb-0 fw-bold">{{ total_items }}</h2>
+                        </div>
+                        <i class="bi bi-box-seam fs-1 opacity-50"></i>
+                    </div>
+                    <small class="text-white-50">Active inventory items</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card-modern" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Total Batches</h6>
+                            <h2 class="mb-0 fw-bold">{{ total_batches }}</h2>
+                        </div>
+                        <i class="bi bi-stack fs-1 opacity-50"></i>
+                    </div>
+                    <small class="text-white-50">Stock batches in system</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card-modern" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Total Orders</h6>
+                            <h2 class="mb-0 fw-bold">{{ total_orders }}</h2>
+                        </div>
+                        <i class="bi bi-cart-check fs-1 opacity-50"></i>
+                    </div>
+                    <small class="text-white-50">All orders processed</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card-modern" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border: none;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Pending Orders</h6>
+                            <h2 class="mb-0 fw-bold">{{ pending_orders }}</h2>
+                        </div>
+                        <i class="bi bi-hourglass-split fs-1 opacity-50"></i>
+                    </div>
+                    <small class="text-white-50">Awaiting processing</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <h4 class="mb-3" style="color: var(--text-primary); font-weight: 600;">Quick Actions</h4>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card-modern h-100">
+                <div class="card-body text-center p-4">
+                    <i class="bi bi-arrow-down-circle fs-1 text-primary mb-3"></i>
+                    <h5 class="mb-2">Receive Stock</h5>
+                    <p class="text-muted mb-3">Add new batch to inventory</p>
+                    <a href="{% url 'inventory:batch-create' %}" class="btn btn-primary-custom">
+                        <i class="bi bi-plus-circle me-2"></i>Receive
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card-modern h-100">
+                <div class="card-body text-center p-4">
+                    <i class="bi bi-cart-plus fs-1 text-success mb-3"></i>
+                    <h5 class="mb-2">Create Order</h5>
+                    <p class="text-muted mb-3">Process customer order</p>
+                    <a href="{% url 'inventory:order-create' %}" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-2"></i>New Order
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card-modern h-100">
+                <div class="card-body text-center p-4">
+                    <i class="bi bi-arrow-return-left fs-1 text-warning mb-3"></i>
+                    <h5 class="mb-2">Process Return</h5>
+                    <p class="text-muted mb-3">Handle customer returns</p>
+                    <a href="{% url 'inventory:return-create' %}" class="btn btn-warning">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Return
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders & Alerts -->
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card-modern">
+                <div class="card-body">
+                    <h5 class="mb-3" style="color: var(--text-primary); font-weight: 600;">Recent Orders</h5>
+                    {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-modern">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Customer</th>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders|slice:":5" %}
+                                <tr>
+                                    <td><strong>{{ order.id }}</strong></td>
+                                    <td>{{ order.customer_name }}</td>
+                                    <td>{{ order.item.name }}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td>
+                                        {% if order.status == 'pending' %}
+                                            <span class="status-badge status-warning">Pending</span>
+                                        {% elif order.status == 'completed' %}
+                                            <span class="status-badge status-success">Completed</span>
+                                        {% elif order.status == 'cancelled' %}
+                                            <span class="status-badge status-danger">Cancelled</span>
+                                        {% else %}
+                                            <span class="status-badge">{{ order.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ order.order_date|date:"M d, Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{% url 'inventory:order-list' %}" class="btn btn-outline-primary">View All Orders</a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox fs-1 text-muted mb-2"></i>
+                        <p class="text-muted">No orders yet</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Low Stock Alerts -->
+            <div class="card-modern mb-4">
+                <div class="card-body">
+                    <h5 class="mb-3" style="color: var(--text-primary); font-weight: 600;">
+                        <i class="bi bi-exclamation-triangle text-warning me-2"></i>Low Stock
+                    </h5>
+                    {% if low_stock_items %}
+                    <div class="list-group list-group-flush">
+                        {% for item in low_stock_items|slice:":3" %}
+                        <div class="list-group-item px-0 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ item.name }}</strong>
+                                    <br>
+                                    <small class="text-danger">Only {{ item.current_quantity }} left</small>
+                                </div>
+                                <span class="status-badge status-warning">Low</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-check-circle text-success fs-3"></i>
+                        <p class="text-muted mb-0 mt-2">All items stocked</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Expiring Soon -->
+            <div class="card-modern">
+                <div class="card-body">
+                    <h5 class="mb-3" style="color: var(--text-primary); font-weight: 600;">
+                        <i class="bi bi-clock-history text-danger me-2"></i>Expiring Soon
+                    </h5>
+                    {% if expiring_batches %}
+                    <div class="list-group list-group-flush">
+                        {% for batch in expiring_batches|slice:":3" %}
+                        <div class="list-group-item px-0 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ batch.item.name }}</strong>
+                                    <br>
+                                    <small class="text-danger">Exp: {{ batch.expiry_date|date:"M d, Y" }}</small>
+                                </div>
+                                <span class="status-badge status-danger">{{ batch.available_quantity }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-check-circle text-success fs-3"></i>
+                        <p class="text-muted mb-0 mt-2">No expiring items</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

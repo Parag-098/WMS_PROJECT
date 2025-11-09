@@ -1,0 +1,11 @@
+django
+djangorestframework
+django-import-export
+django-q2
+pandas
+openpyxl
+django-extensions
+psycopg2-binary
+celery
+redis
+neo4j-driver

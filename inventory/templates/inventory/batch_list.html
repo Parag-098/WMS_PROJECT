@@ -1,0 +1,25 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Batches - WMS{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Batches</h2>
+            <a href="{% url 'inventory:batch-create' %}" class="btn btn-primary">+ Add Batch</a>
+        </div>
+
+        <form method="get" class="mb-3" hx-get="{% url 'inventory:batch-list' %}" hx-trigger="keyup changed delay:500ms from:#search-input" hx-target="#batch-table-container">
+            <div class="input-group">
+                <input type="text" name="search" id="search-input" class="form-control" placeholder="Search by lot number or item SKU..." value="{{ request.GET.search }}">
+                <button class="btn btn-outline-secondary" type="submit">Search</button>
+            </div>
+        </form>
+
+        <div id="batch-table-container">
+            {% include "inventory/partials/batch_table.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}

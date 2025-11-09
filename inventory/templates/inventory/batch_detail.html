@@ -1,0 +1,52 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Batch Detail - WMS{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Batch: {{ batch.lot_no }}</h2>
+            <div>
+                <a href="{% url 'inventory:batch-update' pk=batch.pk %}" class="btn btn-primary">Edit</a>
+                <a href="{% url 'inventory:batch-delete' pk=batch.pk %}" class="btn btn-danger">Delete</a>
+                <a href="{% url 'inventory:batch-list' %}" class="btn btn-secondary">Back to List</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Batch Details</h5>
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th width="30%">Lot Number</th>
+                            <td>{{ batch.lot_no }}</td>
+                        </tr>
+                        <tr>
+                            <th>Item</th>
+                            <td><a href="{% url 'inventory:item-detail' sku=batch.item.sku %}">{{ batch.item.sku }} - {{ batch.item.name }}</a></td>
+                        </tr>
+                        <tr>
+                            <th>Received Quantity</th>
+                            <td>{{ batch.received_qty }} {{ batch.item.unit }}</td>
+                        </tr>
+                        <tr>
+                            <th>Available Quantity</th>
+                            <td><strong>{{ batch.available_qty }} {{ batch.item.unit }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Expiry Date</th>
+                            <td>{{ batch.expiry_date|date:"Y-m-d"|default:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td><span class="badge bg-secondary">{{ batch.get_status_display }}</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

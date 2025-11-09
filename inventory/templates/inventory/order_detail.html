@@ -1,0 +1,219 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Order {{ order.order_no }} - WMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Order {{ order.order_no }}</h1>
+        <div>
+            <a href="{% url 'inventory:order-list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Orders
+            </a>
+            {% if user.is_staff %}
+            <a href="{% url 'inventory:order-update' order.pk %}" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            {% if order.status != 'cancelled' and order.status != 'delivered' %}
+            <form method="post" action="{% url 'inventory:order-cancel' order.pk %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to cancel this order?');">
+                    <i class="bi bi-x-circle"></i> Cancel Order
+                </button>
+            </form>
+            {% endif %}
+            <a href="{% url 'inventory:order-delete' order.pk %}" class="btn btn-danger">
+                <i class="bi bi-trash"></i> Delete
+            </a>
+            {% endif %}
+            {% if order.status == 'new' %}
+            <a href="{% url 'inventory:order-allocate' order.pk %}" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Allocate Stock
+            </a>
+            {% elif order.status == 'allocated' %}
+            <a href="{% url 'inventory:order-pick' order.pk %}" class="btn btn-warning">
+                <i class="bi bi-box-seam"></i> Pick
+            </a>
+            {% if user.is_staff %}
+            <a href="{% url 'inventory:order-deallocate' order.pk %}" class="btn btn-danger">
+                <i class="bi bi-x-circle"></i> Deallocate
+            </a>
+            {% endif %}
+            {% elif order.status == 'picked' %}
+            <a href="{% url 'inventory:order-pack' order.pk %}" class="btn btn-info">
+                <i class="bi bi-box"></i> Pack
+            </a>
+            {% if user.is_staff %}
+            <a href="{% url 'inventory:order-ship' order.pk %}" class="btn btn-primary">
+                <i class="bi bi-truck"></i> Ship
+            </a>
+            {% endif %}
+            {% elif order.status == 'shipped' and user.is_staff %}
+            <a href="{% url 'inventory:order-deliver' order.pk %}" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Mark as Delivered
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Order Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Order Number:</strong> {{ order.order_no }}</p>
+                    <p><strong>Customer:</strong> {{ order.customer_name|default:"N/A" }}</p>
+                    <p><strong>Status:</strong> 
+                        {% if order.status == 'new' %}
+                            <span class="badge bg-primary">New</span>
+                        {% elif order.status == 'allocated' %}
+                            <span class="badge bg-info">Allocated</span>
+                        {% elif order.status == 'picked' %}
+                            <span class="badge bg-warning">Picked</span>
+                        {% elif order.status == 'shipped' %}
+                            <span class="badge bg-success">Shipped</span>
+                        {% elif order.status == 'delivered' %}
+                            <span class="badge bg-success">Delivered</span>
+                        {% elif order.status == 'cancelled' %}
+                            <span class="badge bg-secondary">Cancelled</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Created:</strong> {{ order.created_at|date:"Y-m-d H:i:s" }}</p>
+                    <p><strong>Fully Allocated:</strong> 
+                        {% if order.is_fully_allocated %}
+                            <span class="badge bg-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-warning">No</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Order Items</h5>
+        </div>
+        <div class="card-body">
+            {% if order_items %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Item SKU</th>
+                            <th>Item Name</th>
+                            <th>Qty Requested</th>
+                            <th>Qty Allocated</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order_item in order_items %}
+                        <tr>
+                            <td><a href="{% url 'inventory:item-detail' order_item.item.sku %}">{{ order_item.item.sku }}</a></td>
+                            <td>{{ order_item.item.name }}</td>
+                            <td>{{ order_item.qty_requested }}</td>
+                            <td>{{ order_item.qty_allocated }}</td>
+                            <td>
+                                {% if order_item.qty_allocated >= order_item.qty_requested %}
+                                    <span class="badge bg-success">Fully Allocated</span>
+                                {% elif order_item.qty_allocated > 0 %}
+                                    <span class="badge bg-warning">Partially Allocated</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Not Allocated</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">No items in this order.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Allocations -->
+    {% if allocations %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Allocations</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Batch Lot #</th>
+                            <th>Qty Allocated</th>
+                            <th>Expiry Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for allocation in allocations %}
+                        <tr>
+                            <td>{{ allocation.order_item.item.sku }}</td>
+                            <td><a href="{% url 'inventory:batch-detail' allocation.batch.pk %}">{{ allocation.batch.lot_no }}</a></td>
+                            <td>{{ allocation.qty_allocated }}</td>
+                            <td>{{ allocation.batch.expiry_date|date:"Y-m-d"|default:"—" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Shipments -->
+    {% if shipments %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Shipments</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Shipment #</th>
+                            <th>Status</th>
+                            <th>Tracking #</th>
+                            <th>Shipped Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for shipment in shipments %}
+                        <tr>
+                            <td>{{ shipment.shipment_no }}</td>
+                            <td>
+                                {% if shipment.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif shipment.status == 'in_transit' %}
+                                    <span class="badge bg-info">In Transit</span>
+                                {% elif shipment.status == 'delivered' %}
+                                    <span class="badge bg-success">Delivered</span>
+                                {% elif shipment.status == 'cancelled' %}
+                                    <span class="badge bg-secondary">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ shipment.tracking_number|default:"—" }}</td>
+                            <td>{{ shipment.shipped_date|date:"Y-m-d H:i"|default:"—" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

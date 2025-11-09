@@ -1,0 +1,117 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block title %}Inventory Movement Report - WMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1><i class="bi bi-arrow-left-right"></i> Inventory Movement Report</h1>
+    
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="item_sku" class="form-label">Item SKU</label>
+                    <select name="item_sku" id="item_sku" class="form-select">
+                        <option value="">All Items</option>
+                        {% for item in items %}
+                        <option value="{{ item.sku }}" {% if item.sku == item_sku %}selected{% endif %}>
+                            {{ item.sku }} - {{ item.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Movement Log -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Transaction Log (Last 200 entries)</h5>
+        </div>
+        <div class="card-body">
+            {% if logs %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Type</th>
+                            <th>Item</th>
+                            <th>Batch</th>
+                            <th>Quantity</th>
+                            <th>Order</th>
+                            <th>User</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                {% if log.type == 'RECEIVE' %}
+                                    <span class="badge bg-success">Receive</span>
+                                {% elif log.type == 'RESERVE' %}
+                                    <span class="badge bg-info">Reserve</span>
+                                {% elif log.type == 'UNRESERVE' %}
+                                    <span class="badge bg-warning">Unreserve</span>
+                                {% elif log.type == 'SHIP' %}
+                                    <span class="badge bg-primary">Ship</span>
+                                {% elif log.type == 'RETURN' %}
+                                    <span class="badge bg-secondary">Return</span>
+                                {% elif log.type == 'ADJUST' %}
+                                    <span class="badge bg-dark">Adjust</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark">{{ log.get_type_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'inventory:item-detail' log.item.sku %}">{{ log.item.sku }}</a>
+                            </td>
+                            <td>
+                                {% if log.batch %}
+                                <a href="{% url 'inventory:batch-detail' log.batch.pk %}">{{ log.batch.lot_no }}</a>
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            <td>{{ log.qty }} {{ log.item.unit }}</td>
+                            <td>
+                                {% if log.order %}
+                                <a href="{% url 'inventory:order-detail' log.order.pk %}">{{ log.order.order_no }}</a>
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            <td>{{ log.user.username|default:"System" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">No transactions found for the selected filters.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

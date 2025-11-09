@@ -1,0 +1,400 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block title %}Stock Overview{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h3 class="mb-1"><i class="bi bi-graph-up"></i> Stock Overview & Inventory Value</h3>
+      <p class="text-muted small mb-0">Real-time stock levels, inventory valuation, and trends</p>
+    </div>
+    <button id="refreshData" class="btn btn-primary">
+      <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card border-primary">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="text-muted mb-1">Total Inventory Value</h6>
+              <h3 class="mb-0" id="totalValue">$0.00</h3>
+              <small class="text-success" id="valueChange">+0%</small>
+            </div>
+            <div class="bg-primary bg-opacity-10 p-3 rounded">
+              <i class="bi bi-currency-dollar text-primary fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card border-success">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="text-muted mb-1">Total SKUs</h6>
+              <h3 class="mb-0" id="totalSKUs">0</h3>
+              <small class="text-muted" id="activeSKUs">0 active</small>
+            </div>
+            <div class="bg-success bg-opacity-10 p-3 rounded">
+              <i class="bi bi-box-seam text-success fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card border-warning">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="text-muted mb-1">Total Units in Stock</h6>
+              <h3 class="mb-0" id="totalUnits">0</h3>
+              <small class="text-muted" id="batchCount">0 batches</small>
+            </div>
+            <div class="bg-warning bg-opacity-10 p-3 rounded">
+              <i class="bi bi-boxes text-warning fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card border-danger">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="text-muted mb-1">Low Stock Items</h6>
+              <h3 class="mb-0 text-danger" id="lowStockCount">0</h3>
+              <small class="text-muted">Below reorder point</small>
+            </div>
+            <div class="bg-danger bg-opacity-10 p-3 rounded">
+              <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <strong>Stock Levels by Item</strong>
+          <span class="text-muted small">(Top 20 Items)</span>
+        </div>
+        <div class="card-body">
+          <canvas id="stockChart" height="80"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <strong>Inventory Value Distribution</strong>
+        </div>
+        <div class="card-body">
+          <canvas id="valueChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock Details Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Detailed Stock Report</strong>
+      <div>
+        <input type="text" id="searchInput" class="form-control form-control-sm d-inline-block" style="width: 250px;" placeholder="Search by SKU or name...">
+        <button id="exportCSV" class="btn btn-success btn-sm ms-2">
+          <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive" style="max-height: 500px;">
+        <table class="table table-hover table-sm mb-0">
+          <thead class="table-light sticky-top">
+            <tr>
+              <th>SKU</th>
+              <th>Item Name</th>
+              <th class="text-end">Available Stock</th>
+              <th class="text-end">Allocated</th>
+              <th class="text-end">Unit Price</th>
+              <th class="text-end">Total Value</th>
+              <th class="text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody id="stockTableBody">
+            <tr>
+              <td colspan="7" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                Loading stock data...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer text-muted small">
+      <span id="tableInfo">Showing 0 items</span>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+(function() {
+  let stockData = [];
+  let stockChart = null;
+  let valueChart = null;
+
+  // Load stock data
+  async function loadStockData() {
+    try {
+      const response = await fetch('{% url "inventory:stock-overview-data" %}');
+      if (!response.ok) throw new Error('Failed to fetch data');
+      
+      const data = await response.json();
+      stockData = data.items || [];
+      
+      updateSummaryCards(data.summary);
+      updateStockChart(data.items);
+      updateValueChart(data.items);
+      updateStockTable(data.items);
+    } catch (error) {
+      console.error('Error loading stock data:', error);
+      document.getElementById('stockTableBody').innerHTML = `
+        <tr><td colspan="7" class="text-center py-4 text-danger">
+          <i class="bi bi-exclamation-circle"></i> Error loading data. Please refresh.
+        </td></tr>
+      `;
+    }
+  }
+
+  // Update summary cards
+  function updateSummaryCards(summary) {
+    document.getElementById('totalValue').textContent = '$' + (summary.total_value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('totalSKUs').textContent = (summary.total_skus || 0).toLocaleString();
+    document.getElementById('activeSKUs').textContent = (summary.active_skus || 0) + ' active';
+    document.getElementById('totalUnits').textContent = (summary.total_units || 0).toLocaleString();
+    document.getElementById('batchCount').textContent = (summary.batch_count || 0) + ' batches';
+    document.getElementById('lowStockCount').textContent = (summary.low_stock_count || 0).toLocaleString();
+    
+    // Value change (mock for now - would come from historical data)
+    const valueChange = document.getElementById('valueChange');
+    valueChange.textContent = '+0%';
+  }
+
+  // Update stock chart
+  function updateStockChart(items) {
+    const top20 = items.slice(0, 20);
+    const labels = top20.map(item => item.sku);
+    const available = top20.map(item => item.available_stock);
+    const allocated = top20.map(item => item.allocated_stock);
+
+    const ctx = document.getElementById('stockChart').getContext('2d');
+    
+    if (stockChart) {
+      stockChart.destroy();
+    }
+
+    stockChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Available',
+            data: available,
+            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+            borderColor: 'rgba(40, 167, 69, 1)',
+            borderWidth: 1
+          },
+          {
+            label: 'Allocated',
+            data: allocated,
+            backgroundColor: 'rgba(255, 193, 7, 0.7)',
+            borderColor: 'rgba(255, 193, 7, 1)',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          x: {
+            stacked: false,
+            ticks: { font: { size: 10 } }
+          },
+          y: {
+            stacked: false,
+            beginAtZero: true,
+            title: { display: true, text: 'Units' }
+          }
+        },
+        plugins: {
+          legend: { display: true, position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + context.parsed.y.toLocaleString() + ' units';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Update value chart (pie chart)
+  function updateValueChart(items) {
+    const top10 = items.slice(0, 10);
+    const labels = top10.map(item => item.sku);
+    const values = top10.map(item => item.total_value);
+    
+    const ctx = document.getElementById('valueChart').getContext('2d');
+    
+    if (valueChart) {
+      valueChart.destroy();
+    }
+
+    valueChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: [
+            'rgba(13, 110, 253, 0.8)',
+            'rgba(25, 135, 84, 0.8)',
+            'rgba(255, 193, 7, 0.8)',
+            'rgba(220, 53, 69, 0.8)',
+            'rgba(111, 66, 193, 0.8)',
+            'rgba(13, 202, 240, 0.8)',
+            'rgba(255, 99, 132, 0.8)',
+            'rgba(54, 162, 235, 0.8)',
+            'rgba(255, 206, 86, 0.8)',
+            'rgba(75, 192, 192, 0.8)'
+          ],
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: true, position: 'right' },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                return label + ': $' + value.toLocaleString('en-US', {minimumFractionDigits: 2});
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Update stock table
+  function updateStockTable(items) {
+    const tbody = document.getElementById('stockTableBody');
+    
+    if (!items || items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No stock data available</td></tr>';
+      document.getElementById('tableInfo').textContent = 'Showing 0 items';
+      return;
+    }
+
+    tbody.innerHTML = items.map(item => {
+      const status = item.available_stock <= (item.reorder_point || 0) ? 
+        '<span class="badge bg-danger">Low Stock</span>' :
+        item.available_stock > 100 ? 
+        '<span class="badge bg-success">In Stock</span>' :
+        '<span class="badge bg-warning text-dark">Normal</span>';
+
+      return `
+        <tr>
+          <td><strong>${item.sku}</strong></td>
+          <td>${item.name}</td>
+          <td class="text-end">${item.available_stock.toLocaleString()}</td>
+          <td class="text-end">${item.allocated_stock.toLocaleString()}</td>
+          <td class="text-end">$${item.unit_price.toFixed(2)}</td>
+          <td class="text-end"><strong>$${item.total_value.toLocaleString('en-US', {minimumFractionDigits: 2})}</strong></td>
+          <td class="text-center">${status}</td>
+        </tr>
+      `;
+    }).join('');
+
+    document.getElementById('tableInfo').textContent = `Showing ${items.length} items`;
+  }
+
+  // Search functionality
+  document.getElementById('searchInput').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const filtered = stockData.filter(item => 
+      item.sku.toLowerCase().includes(searchTerm) || 
+      item.name.toLowerCase().includes(searchTerm)
+    );
+    updateStockTable(filtered);
+  });
+
+  // Export to CSV
+  document.getElementById('exportCSV').addEventListener('click', function() {
+    const csv = [
+      ['SKU', 'Item Name', 'Available Stock', 'Allocated Stock', 'Unit Price', 'Total Value', 'Reorder Point'],
+      ...stockData.map(item => [
+        item.sku,
+        item.name,
+        item.available_stock,
+        item.allocated_stock,
+        item.unit_price,
+        item.total_value,
+        item.reorder_point || 0
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'stock_overview_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  });
+
+  // Refresh button
+  document.getElementById('refreshData').addEventListener('click', loadStockData);
+
+  // Initial load
+  loadStockData();
+})();
+</script>
+
+<style>
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+</style>
+{% endblock %}

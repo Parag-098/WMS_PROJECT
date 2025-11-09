@@ -1,0 +1,77 @@
+<div class="alert alert-info">
+    <h5><i class="bi bi-eye"></i> Import Preview</h5>
+    <p>Showing preview of <strong>{{ model_type }}</strong> import ({{ rows|length }} of {{ total_rows }} rows)</p>
+    
+    {% if validation_results.errors %}
+    <div class="alert alert-danger">
+        <h6>Validation Errors ({{ validation_results.errors|length }})</h6>
+        <ul class="mb-0">
+            {% for error in validation_results.errors|slice:":10" %}
+            <li>Row {{ error.row }}: {{ error.errors|join:", " }}</li>
+            {% endfor %}
+            {% if validation_results.errors|length > 10 %}
+            <li>... and {{ validation_results.errors|length|add:"-10" }} more</li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    {% if validation_results.warnings %}
+    <div class="alert alert-warning">
+        <h6>Warnings ({{ validation_results.warnings|length }})</h6>
+        <ul class="mb-0">
+            {% for warning in validation_results.warnings|slice:":10" %}
+            <li>Row {{ warning.row }}: {{ warning.warning }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <hr>
+    
+    <h6>Import Summary:</h6>
+    <ul>
+        <li>Total Rows: {{ validation_results.total_rows }}</li>
+        <li>Valid Rows: <span class="badge bg-success">{{ validation_results.valid_rows }}</span></li>
+        <li>Error Rows: <span class="badge bg-danger">{{ validation_results.errors|length }}</span></li>
+    </ul>
+    
+    <hr>
+    
+    <h6>Data Preview:</h6>
+    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+        <table class="table table-sm table-striped">
+            <thead class="sticky-top bg-white">
+                <tr>
+                    {% for key in rows.0.keys %}
+                    <th>{{ key }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    {% for value in row.values %}
+                    <td>{{ value }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if validation_results.valid_rows > 0 %}
+    <form method="post" action="{% url 'inventory:bulk-import-commit' %}" hx-post="{% url 'inventory:bulk-import-commit' %}" hx-target="#import-result">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-circle"></i> Commit Import ({{ validation_results.valid_rows }} rows)
+        </button>
+        <a href="{% url 'inventory:bulk-import' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+    {% else %}
+    <div class="alert alert-danger mt-3">
+        No valid rows to import. Please fix errors and try again.
+    </div>
+    <a href="{% url 'inventory:bulk-import' %}" class="btn btn-secondary">Back</a>
+    {% endif %}
+</div>

@@ -1,0 +1,166 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block title %}Low Stock Alert - WMS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .alert-card {
+        border-left: 4px solid #dc3545;
+        margin-bottom: 1rem;
+    }
+    .critical-stock {
+        background-color: #fff5f5;
+        border-left-color: #dc3545;
+    }
+    .low-stock {
+        background-color: #fff9e6;
+        border-left-color: #ffc107;
+    }
+    .stock-badge {
+        font-size: 1.2rem;
+        padding: 0.5rem 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-exclamation-triangle-fill text-warning"></i> Low Stock Alert</h1>
+        <a href="{% url 'inventory:dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Critical Stock</h5>
+                    <h2>{{ critical_count }}</h2>
+                    <p class="mb-0">Items at 0 or below reorder level</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Low Stock</h5>
+                    <h2>{{ low_count }}</h2>
+                    <p class="mb-0">Items near reorder threshold</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Healthy Stock</h5>
+                    <h2>{{ healthy_count }}</h2>
+                    <p class="mb-0">Items with sufficient quantity</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Critical Stock Items -->
+    {% if critical_items %}
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="bi bi-exclamation-octagon"></i> Critical Stock Items (Urgent Reorder)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Item Name</th>
+                            <th>Current Stock</th>
+                            <th>Reorder Level</th>
+                            <th>Unit</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in critical_items %}
+                        <tr class="table-danger">
+                            <td><strong>{{ item.sku }}</strong></td>
+                            <td>{{ item.name }}</td>
+                            <td>
+                                <span class="badge bg-danger stock-badge">{{ item.total_qty|default:0 }}</span>
+                            </td>
+                            <td>{{ item.reorder_threshold }}</td>
+                            <td>{{ item.unit }}</td>
+                            <td>
+                                <a href="{% url 'inventory:item-detail' item.sku %}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                                <a href="{% url 'inventory:receive' %}?item={{ item.sku }}" class="btn btn-sm btn-success">
+                                    <i class="bi bi-plus-circle"></i> Receive
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Low Stock Items -->
+    {% if low_items %}
+    <div class="card mb-4">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Low Stock Items (Monitor & Reorder Soon)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Item Name</th>
+                            <th>Current Stock</th>
+                            <th>Reorder Level</th>
+                            <th>Unit</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in low_items %}
+                        <tr class="table-warning">
+                            <td><strong>{{ item.sku }}</strong></td>
+                            <td>{{ item.name }}</td>
+                            <td>
+                                <span class="badge bg-warning stock-badge">{{ item.total_qty|default:0 }}</span>
+                            </td>
+                            <td>{{ item.reorder_threshold }}</td>
+                            <td>{{ item.unit }}</td>
+                            <td>
+                                <a href="{% url 'inventory:item-detail' item.sku %}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                                <a href="{% url 'inventory:receive' %}?item={{ item.sku }}" class="btn btn-sm btn-success">
+                                    <i class="bi bi-plus-circle"></i> Receive
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not critical_items and not low_items %}
+    <div class="alert alert-success" role="alert">
+        <h4 class="alert-heading"><i class="bi bi-check-circle"></i> All Stock Levels Healthy!</h4>
+        <p>No items currently below or near reorder threshold. Great job!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

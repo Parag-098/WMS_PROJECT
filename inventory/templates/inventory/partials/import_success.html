@@ -1,0 +1,22 @@
+<div class="alert alert-success">
+    <h5><i class="bi bi-check-circle"></i> Import Successful</h5>
+    <p>Successfully imported <strong>{{ result.success }}</strong> {{ model_type }}(s).</p>
+    
+    {% if result.failed > 0 %}
+    <p class="text-warning">
+        <i class="bi bi-exclamation-triangle"></i> 
+        {{ result.failed }} row(s) failed validation and were skipped.
+    </p>
+    {% endif %}
+    
+    <hr>
+    
+    <div class="mt-3">
+        <a href="{% url 'inventory:item-list' %}" class="btn btn-primary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{% url 'inventory:bulk-import' %}" class="btn btn-secondary">
+            <i class="bi bi-upload"></i> Import More
+        </a>
+    </div>
+</div>

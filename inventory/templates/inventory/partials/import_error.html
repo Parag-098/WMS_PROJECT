@@ -1,0 +1,11 @@
+<div class="alert alert-danger">
+    <h5><i class="bi bi-exclamation-triangle"></i> Import Error</h5>
+    <p><strong>Error:</strong> {{ error }}</p>
+    <p class="mb-0">Please check your file format and try again.</p>
+    
+    <hr>
+    
+    <a href="{% url 'inventory:bulk-import' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+</div>

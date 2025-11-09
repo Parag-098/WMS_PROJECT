@@ -1,0 +1,94 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Allocate Order {{ order.order_no }} - WMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Allocate Order {{ order.order_no }}</h1>
+
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle"></i> 
+        This will automatically allocate stock to this order using FEFO (First-Expired-First-Out) logic.
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Order Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Order Number:</strong> {{ order.order_no }}</p>
+                    <p><strong>Customer:</strong> {{ order.customer_name|default:"N/A" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Status:</strong> 
+                        {% if order.status == 'new' %}
+                            <span class="badge bg-primary">New</span>
+                        {% elif order.status == 'allocated' %}
+                            <span class="badge bg-info">Allocated</span>
+                        {% elif order.status == 'shipped' %}
+                            <span class="badge bg-success">Shipped</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Created:</strong> {{ order.created_at|date:"Y-m-d H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Items to Allocate</h5>
+        </div>
+        <div class="card-body">
+            {% if order_items %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Item SKU</th>
+                            <th>Item Name</th>
+                            <th>Qty Requested</th>
+                            <th>Qty Already Allocated</th>
+                            <th>Remaining</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order_item in order_items %}
+                        <tr>
+                            <td>{{ order_item.item.sku }}</td>
+                            <td>{{ order_item.item.name }}</td>
+                            <td>{{ order_item.qty_requested }}</td>
+                            <td>{{ order_item.qty_allocated }}</td>
+                            <td>
+                                {% widthratio order_item.qty_requested 1 1 as requested %}
+                                {% widthratio order_item.qty_allocated 1 1 as allocated %}
+                                <strong>{{ order_item.qty_requested|add:"-"|add:order_item.qty_allocated }}</strong>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">No items in this order.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <form method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-check-circle"></i> Allocate Stock Now
+            </button>
+        </form>
+        <a href="{% url 'inventory:order-detail' order.pk %}" class="btn btn-secondary btn-lg">Cancel</a>
+    </div>
+
+    <div id="allocation-result" class="mt-4">
+        <!-- Results will appear here after allocation -->
+    </div>
+</div>
+{% endblock %}

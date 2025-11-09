@@ -1,0 +1,63 @@
+{% if success %}
+<div class="alert alert-success">
+    <h5><i class="bi bi-check-circle"></i> Shipment Created</h5>
+    <p>Order <strong>#{{ order.order_no }}</strong> has been shipped successfully!</p>
+    
+    <hr>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <h6>Shipment Details:</h6>
+            <ul class="list-unstyled">
+                <li><strong>Tracking Number:</strong> <code>{{ shipment.tracking_no }}</code></li>
+                <li><strong>Carrier:</strong> {{ shipment.carrier|default:"N/A" }}</li>
+                <li><strong>Shipped At:</strong> {{ shipment.shipped_at|date:"Y-m-d H:i" }}</li>
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h6>Shipping Address:</h6>
+            <pre class="bg-light p-2 border">{{ shipment.shipping_address }}</pre>
+        </div>
+    </div>
+    
+    <hr>
+    
+    <h6>Order Items:</h6>
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Item SKU</th>
+                <th>Quantity</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order_item in order.items.all %}
+            <tr>
+                <td>{{ order_item.item.sku }}</td>
+                <td>{{ order_item.qty_requested }} {{ order_item.item.unit }}</td>
+                <td><span class="badge bg-success">Shipped</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <p class="mb-0">
+        <small class="text-muted">
+            <i class="bi bi-info-circle"></i> 
+            Inventory consumption logged. Shipment notification sent. Webhooks triggered.
+        </small>
+    </p>
+    
+    <hr>
+    <a href="{% url 'inventory:item-list' %}" class="btn btn-sm btn-primary">
+        <i class="bi bi-house"></i> Back to Dashboard
+    </a>
+</div>
+{% else %}
+<div class="alert alert-danger">
+    <h5><i class="bi bi-exclamation-triangle"></i> Shipment Failed</h5>
+    <p><strong>Error:</strong> {{ error_message }}</p>
+    <p class="mb-0">Please check the form and try again.</p>
+</div>
+{% endif %}

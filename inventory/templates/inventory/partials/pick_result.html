@@ -1,0 +1,48 @@
+{% if success %}
+<div class="alert alert-success">
+    <h5><i class="bi bi-check-circle"></i> Pick Confirmed</h5>
+    <p>Order <strong>#{{ order.order_no }}</strong> pick operation completed successfully.</p>
+    
+    <h6>Pick Summary:</h6>
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Item SKU</th>
+                <th>Allocated</th>
+                <th>Picked</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in pick_results %}
+            <tr>
+                <td>{{ result.item_sku }}</td>
+                <td>{{ result.qty_allocated }}</td>
+                <td>{{ result.qty_picked }}</td>
+                <td>
+                    {% if result.qty_picked == result.qty_allocated %}
+                        <span class="badge bg-success">Match</span>
+                    {% else %}
+                        <span class="badge bg-warning">Adjusted</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <p class="mb-0">
+        <small>Order status updated to: <span class="badge bg-info">Picked</span></small>
+    </p>
+    
+    <hr>
+    <a href="{% url 'inventory:order-pack' order.id %}" class="btn btn-sm btn-primary">
+        <i class="bi bi-arrow-right"></i> Proceed to Pack
+    </a>
+</div>
+{% else %}
+<div class="alert alert-danger">
+    <h5><i class="bi bi-exclamation-triangle"></i> Pick Failed</h5>
+    <p><strong>Error:</strong> {{ error_message }}</p>
+</div>
+{% endif %}

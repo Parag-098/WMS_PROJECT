@@ -1,0 +1,133 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block title %}Export Data{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2><i class="bi bi-download"></i> Export Data</h2>
+            <p class="text-muted">Download reports and data exports in CSV or XLSX format.</p>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <!-- Inventory Snapshot -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-box-seam"></i> Inventory Snapshot</h5>
+                    <p class="card-text">Export current inventory with aggregated available quantities for all items.</p>
+                    <p class="text-muted small">Includes: SKU, Name, Unit, Available Qty, Reorder Threshold, Status, Batch Count</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'inventory:export_inventory_snapshot' %}?format=csv" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="bi bi-filetype-csv"></i> Download CSV
+                    </a>
+                    <a href="{% url 'inventory:export_inventory_snapshot' %}?format=xlsx" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-file-earmark-excel"></i> Download XLSX
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batches List -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-layers"></i> Batches List</h5>
+                    <p class="card-text">Export all batches with full details including lot numbers and expiry dates.</p>
+                    <p class="text-muted small">Includes: ID, Item SKU, Lot No, Received/Available Qty, Expiry Date, Status</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'inventory:export_batches' %}?format=csv" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="bi bi-filetype-csv"></i> Download CSV
+                    </a>
+                    <a href="{% url 'inventory:export_batches' %}?format=xlsx" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-file-earmark-excel"></i> Download XLSX
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction Log -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-journal-text"></i> Transaction Log</h5>
+                    <p class="card-text">Export transaction history with optional date filtering.</p>
+                    <p class="text-muted small">Includes: Timestamp, Type, User, Batch, Item, Order, Qty Change, Notes</p>
+                    
+                    <form method="get" action="{% url 'inventory:export_transaction_log' %}" id="txn-export-form">
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-6">
+                                <label for="start_date" class="form-label small">Start Date (Optional)</label>
+                                <input type="datetime-local" class="form-control form-control-sm" id="start_date" name="start_date">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end_date" class="form-label small">End Date (Optional)</label>
+                                <input type="datetime-local" class="form-control form-control-sm" id="end_date" name="end_date">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="exportTxnLog('csv')">
+                        <i class="bi bi-filetype-csv"></i> Download CSV
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="exportTxnLog('xlsx')">
+                        <i class="bi bi-file-earmark-excel"></i> Download XLSX
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders & Allocations -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-cart-check"></i> Orders & Allocations</h5>
+                    <p class="card-text">Export orders with allocation details and fulfillment status.</p>
+                    <p class="text-muted small">Includes: Order No, Customer, Status, Items, Allocations, Batch Details</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'inventory:export_orders_allocations' %}?format=csv" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="bi bi-filetype-csv"></i> Download CSV
+                    </a>
+                    <a href="{% url 'inventory:export_orders_allocations' %}?format=xlsx" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-file-earmark-excel"></i> Download XLSX
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> <strong>Note:</strong> Large exports use streaming responses for optimal performance. CSV format is recommended for very large datasets.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportTxnLog(format) {
+    const form = document.getElementById('txn-export-form');
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    
+    let url = form.action + '?format=' + format;
+    if (startDate) {
+        url += '&start_date=' + encodeURIComponent(startDate);
+    }
+    if (endDate) {
+        url += '&end_date=' + encodeURIComponent(endDate);
+    }
+    
+    window.location.href = url;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Deallocate Order {{ order.order_no }} - WMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Deallocate Order {{ order.order_no }}</h1>
+
+    <div class="alert alert-warning mb-4">
+        <h5><i class="bi bi-exclamation-triangle"></i> Warning: Release Allocated Stock</h5>
+        <p>This will release all allocated stock back to inventory and reset the order to NEW status.</p>
+        <p class="mb-0"><strong>This action cannot be undone automatically.</strong> You will need to re-allocate if needed.</p>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Order Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Order Number:</strong> {{ order.order_no }}</p>
+                    <p><strong>Customer:</strong> {{ order.customer_name|default:"N/A" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Current Status:</strong> 
+                        {% if order.status == 'new' %}
+                            <span class="badge bg-primary">New</span>
+                        {% elif order.status == 'allocated' %}
+                            <span class="badge bg-info">Allocated</span>
+                        {% elif order.status == 'shipped' %}
+                            <span class="badge bg-success">Shipped</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Created:</strong> {{ order.created_at|date:"Y-m-d H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Current Allocations to Release</h5>
+        </div>
+        <div class="card-body">
+            {% if allocations %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Item SKU</th>
+                            <th>Item Name</th>
+                            <th>Batch Lot #</th>
+                            <th>Allocated Qty</th>
+                            <th>Expiry Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alloc in allocations %}
+                        <tr>
+                            <td>{{ alloc.item.sku }}</td>
+                            <td>{{ alloc.item.name }}</td>
+                            <td>{{ alloc.batch.lot_no }}</td>
+                            <td><strong>{{ alloc.allocation.qty_allocated }}</strong> {{ alloc.item.unit }}</td>
+                            <td>{{ alloc.batch.expiry_date|date:"Y-m-d"|default:"—" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-info">
+                            <td colspan="3" class="text-end"><strong>Total Allocations:</strong></td>
+                            <td colspan="2"><strong>{{ allocations|length }} allocation(s)</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No allocations found for this order. Nothing to deallocate.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if allocations %}
+    <div class="d-flex gap-2">
+        <form method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-lg">
+                <i class="bi bi-x-circle"></i> Deallocate All Stock
+            </button>
+        </form>
+        <a href="{% url 'inventory:order-detail' order.pk %}" class="btn btn-secondary btn-lg">Cancel</a>
+    </div>
+    {% else %}
+    <a href="{% url 'inventory:order-detail' order.pk %}" class="btn btn-secondary btn-lg">
+        <i class="bi bi-arrow-left"></i> Back to Order
+    </a>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Lot Search - WMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2><i class="bi bi-box-seam"></i> Lot/Batch Search</h2>
+            <p class="text-muted">Search a lot number to view detailed batch information and transaction history</p>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <form method="GET" class="card">
+                <div class="card-body">
+                    <div class="input-group input-group-lg mb-3">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" 
+                               class="form-control" 
+                               name="lot_number" 
+                               placeholder="Enter lot number..." 
+                               value="{{ lot_number }}"
+                               autofocus
+                               required>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Start date</label>
+                            <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">End date</label>
+                            <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if batch %}
+    <!-- Batch Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Batch Information</h5>
+                    <a href="{% url 'inventory:export-lot-report' %}?lot_number={{ batch.lot_no }}&start_date={{ start_date }}&end_date={{ end_date }}" 
+                       class="btn btn-light btn-sm">
+                        <i class="bi bi-file-earmark-excel"></i> Export to Excel
+                    </a>
+                    <a href="{% url 'inventory:export-lot-report-csv' %}?lot_number={{ batch.lot_no }}&start_date={{ start_date }}&end_date={{ end_date }}" 
+                       class="btn btn-outline-light btn-sm ms-2">
+                        <i class="bi bi-filetype-csv"></i> Export CSV
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th style="width: 40%;">Lot Number:</th>
+                                    <td><strong>{{ batch.lot_no }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Item SKU:</th>
+                                    <td><a href="{% url 'inventory:item-detail' sku=batch.item.sku %}">{{ batch.item.sku }}</a></td>
+                                </tr>
+                                <tr>
+                                    <th>Item Name:</th>
+                                    <td>{{ batch.item.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Category:</th>
+                                    <td>{{ batch.item.category }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th style="width: 40%;">Received Date:</th>
+                                    <td>{{ batch.received_date|date:"Y-m-d" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Expiry Date:</th>
+                                    <td>
+                                        {% if batch.expiry_date %}
+                                            {{ batch.expiry_date|date:"Y-m-d" }}
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Initial Quantity:</th>
+                                    <td>{{ batch.initial_qty }} {{ batch.item.unit }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Available Quantity:</th>
+                                    <td>
+                                        <strong class="{% if batch.available_qty == 0 %}text-danger{% else %}text-success{% endif %}">
+                                            {{ batch.available_qty }} {{ batch.item.unit }}
+                                        </strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        <span class="badge bg-{% if batch.status == 'available' %}success{% elif batch.status == 'exhausted' %}secondary{% else %}warning{% endif %}">
+                                            {{ batch.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Transaction History</h5>
+                </div>
+                <div class="card-body">
+                    {% if transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>Type</th>
+                                    <th>Quantity</th>
+                                    <th>User</th>
+                                    <th>Order</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for txn in transactions %}
+                                <tr>
+                                    <td>{{ txn.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if txn.transaction_type == 'Receive' %}primary{% elif txn.transaction_type == 'Reserve' %}warning{% elif txn.transaction_type == 'Ship' %}success{% elif txn.transaction_type == 'Return' %}info{% else %}secondary{% endif %}">
+                                            {{ txn.transaction_type }}
+                                        </span>
+                                    </td>
+                                    <td>{{ txn.quantity }} {{ batch.item.unit }}</td>
+                                    <td>{{ txn.user.username|default:"System" }}</td>
+                                    <td>
+                                        {% if txn.order %}
+                                            <a href="{% url 'inventory:order-detail' pk=txn.order.id %}">#{{ txn.order.id }}</a>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ txn.notes|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted mb-0">No transactions found for this lot.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

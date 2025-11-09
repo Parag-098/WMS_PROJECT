@@ -1,0 +1,388 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block title %}Picking Queue Simulator{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+  <h3><i class="bi bi-stack"></i> Picking Queue Simulator (LIFO)</h3>
+  <p class="text-muted">
+    Simulate Last-In-First-Out picking strategy. Useful for planning warehouse pick routes where the last items added to the pick list are picked first (reverse zone picking).
+  </p>
+
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="mb-0" id="totalItems">0</h5>
+          <small class="text-muted">Items in Queue</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="mb-0" id="totalQty">0.00</h5>
+          <small class="text-muted">Total Quantity</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="mb-0" id="estimatedTime">0</h5>
+          <small class="text-muted">Est. Pick Time (min)</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center bg-success text-white">
+        <div class="card-body">
+          <h5 class="mb-0" id="pickedCount">0</h5>
+          <small>Items Picked</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Item Form -->
+  <div class="card mb-3">
+    <div class="card-header"><strong>Add Item to Pick List</strong></div>
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Item SKU</label>
+          <input id="skuInput" class="form-control" placeholder="e.g., ITEM-001" list="skuList" />
+          <datalist id="skuList"></datalist>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Quantity</label>
+          <input id="qtyInput" class="form-control" type="number" step="0.001" min="0.001" placeholder="e.g., 5" value="1" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Location (optional)</label>
+          <input id="locationInput" class="form-control" placeholder="e.g., A-12-03" />
+        </div>
+        <div class="col-md-2">
+          <button id="pushBtn" class="btn btn-primary w-100">
+            <i class="bi bi-plus-circle"></i> Add to Queue
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pick Queue Display -->
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>Pick Queue (LIFO - Last In, First Out)</strong>
+          <div>
+            <button id="pickNextBtn" class="btn btn-success btn-sm me-2">
+              <i class="bi bi-check-circle"></i> Pick Next
+            </button>
+            <button id="clearAllBtn" class="btn btn-outline-danger btn-sm">
+              <i class="bi bi-trash"></i> Clear All
+            </button>
+          </div>
+        </div>
+        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+          <div id="pickQueue" class="d-flex flex-column-reverse gap-2" style="min-height: 300px;">
+            <div class="text-center text-muted py-5">
+              <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+              <p class="mt-2">Pick queue is empty. Add items above to simulate picking.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Picked Items History -->
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header"><strong>Picked Items History</strong></div>
+        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+          <div id="pickedHistory" class="d-flex flex-column gap-2">
+            <div class="text-center text-muted py-5">
+              <p class="small">No items picked yet</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Options -->
+  <div class="card mt-3">
+    <div class="card-body">
+      <div class="d-flex gap-2 align-items-center">
+        <strong class="me-3">Export Pick List:</strong>
+        <button id="exportCsvBtn" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-file-earmark-spreadsheet"></i> Download CSV
+        </button>
+        <button id="printPickListBtn" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-printer"></i> Print Pick List
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.pick-item {
+  transition: all 0.3s ease;
+  border-left: 4px solid #0d6efd;
+}
+.pick-item:hover {
+  transform: translateX(-5px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.picked-item {
+  opacity: 0.7;
+  border-left-color: #198754;
+}
+.badge-location {
+  background: #6c757d;
+  font-size: 0.7rem;
+}
+</style>
+
+<script>
+(function(){
+  const pickQueueEl = document.getElementById('pickQueue');
+  const pickedHistoryEl = document.getElementById('pickedHistory');
+  const skuEl = document.getElementById('skuInput');
+  const qtyEl = document.getElementById('qtyInput');
+  const locationEl = document.getElementById('locationInput');
+  const pushBtn = document.getElementById('pushBtn');
+  const pickNextBtn = document.getElementById('pickNextBtn');
+  const clearAllBtn = document.getElementById('clearAllBtn');
+  
+  let pickQueue = [];
+  let pickedItems = [];
+  
+  // Load sample SKUs for autocomplete
+  fetch('/api/items/')
+    .then(r => r.json())
+    .then(data => {
+      const datalist = document.getElementById('skuList');
+      if (data.results) {
+        data.results.slice(0, 50).forEach(item => {
+          const option = document.createElement('option');
+          option.value = item.sku;
+          datalist.appendChild(option);
+        });
+      }
+    })
+    .catch(e => console.log('Could not load SKU list'));
+  
+  function updateStats() {
+    document.getElementById('totalItems').textContent = pickQueue.length;
+    const totalQty = pickQueue.reduce((sum, item) => sum + parseFloat(item.qty), 0);
+    document.getElementById('totalQty').textContent = totalQty.toFixed(2);
+    document.getElementById('estimatedTime').textContent = Math.ceil(pickQueue.length * 2.5); // 2.5 min per item
+    document.getElementById('pickedCount').textContent = pickedItems.length;
+  }
+  
+  function renderQueue() {
+    if (pickQueue.length === 0) {
+      pickQueueEl.innerHTML = `
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+          <p class="mt-2">Pick queue is empty. Add items above to simulate picking.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    pickQueueEl.innerHTML = pickQueue.map((item, idx) => `
+      <div class="pick-item card p-3">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary">#${idx + 1}</span>
+              <strong class="fs-5">${item.sku}</strong>
+              ${item.location ? `<span class="badge-location badge">${item.location}</span>` : ''}
+            </div>
+            <div class="text-muted small">
+              <i class="bi bi-box"></i> Quantity: <strong>${item.qty}</strong>
+            </div>
+            <div class="text-muted small">
+              <i class="bi bi-clock"></i> Added: ${new Date(item.timestamp).toLocaleTimeString()}
+            </div>
+          </div>
+          <button class="btn btn-outline-danger btn-sm" onclick="removeItem(${idx})">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  function renderPickedHistory() {
+    if (pickedItems.length === 0) {
+      pickedHistoryEl.innerHTML = `
+        <div class="text-center text-muted py-5">
+          <p class="small">No items picked yet</p>
+        </div>
+      `;
+      return;
+    }
+    
+    pickedHistoryEl.innerHTML = pickedItems.slice().reverse().map((item, idx) => `
+      <div class="picked-item card p-2 bg-light">
+        <div class="small">
+          <strong>${item.sku}</strong>
+          <div class="text-muted">Qty: ${item.qty} ${item.location ? `| ${item.location}` : ''}</div>
+          <div class="text-success small">
+            <i class="bi bi-check-circle-fill"></i> ${new Date(item.pickedAt).toLocaleTimeString()}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  // Add item to queue (LIFO - pushes to end, but displayed in reverse)
+  pushBtn.addEventListener('click', function() {
+    const sku = skuEl.value.trim();
+    const qty = parseFloat(qtyEl.value);
+    const location = locationEl.value.trim();
+    
+    if (!sku || !qty || qty <= 0) {
+      alert('Please enter a valid SKU and quantity');
+      return;
+    }
+    
+    pickQueue.push({
+      sku: sku,
+      qty: qty,
+      location: location,
+      timestamp: new Date().toISOString()
+    });
+    
+    skuEl.value = '';
+    qtyEl.value = '1';
+    locationEl.value = '';
+    skuEl.focus();
+    
+    updateStats();
+    renderQueue();
+  });
+  
+  // Pick next item (LIFO - pop from end)
+  pickNextBtn.addEventListener('click', function() {
+    if (pickQueue.length === 0) {
+      alert('Pick queue is empty');
+      return;
+    }
+    
+    const pickedItem = pickQueue.pop();
+    pickedItem.pickedAt = new Date().toISOString();
+    pickedItems.push(pickedItem);
+    
+    updateStats();
+    renderQueue();
+    renderPickedHistory();
+  });
+  
+  // Remove specific item
+  window.removeItem = function(idx) {
+    if (confirm('Remove this item from pick queue?')) {
+      pickQueue.splice(idx, 1);
+      updateStats();
+      renderQueue();
+    }
+  };
+  
+  // Clear all
+  clearAllBtn.addEventListener('click', function() {
+    if (pickQueue.length === 0) return;
+    if (confirm('Clear entire pick queue?')) {
+      pickQueue = [];
+      updateStats();
+      renderQueue();
+    }
+  });
+  
+  // Export CSV
+  document.getElementById('exportCsvBtn').addEventListener('click', function() {
+    if (pickQueue.length === 0) {
+      alert('Pick queue is empty');
+      return;
+    }
+    
+    let csv = 'Position,SKU,Quantity,Location,Added\n';
+    pickQueue.forEach((item, idx) => {
+      csv += `${idx + 1},"${item.sku}",${item.qty},"${item.location}","${item.timestamp}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pick_list_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  });
+  
+  // Print pick list
+  document.getElementById('printPickListBtn').addEventListener('click', function() {
+    if (pickQueue.length === 0) {
+      alert('Pick queue is empty');
+      return;
+    }
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Pick List</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background: #f2f2f2; }
+          </style>
+        </head>
+        <body>
+          <h1>Picking Queue (LIFO)</h1>
+          <p>Generated: ${new Date().toLocaleString()}</p>
+          <p>Total Items: ${pickQueue.length} | Total Qty: ${pickQueue.reduce((s, i) => s + parseFloat(i.qty), 0).toFixed(2)}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Position</th>
+                <th>SKU</th>
+                <th>Quantity</th>
+                <th>Location</th>
+                <th>□ Picked</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pickQueue.map((item, idx) => `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td><strong>${item.sku}</strong></td>
+                  <td>${item.qty}</td>
+                  <td>${item.location || '-'}</td>
+                  <td>□</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  });
+  
+  // Initialize
+  updateStats();
+  renderQueue();
+  renderPickedHistory();
+})();
+</script>
+{% endblock %}

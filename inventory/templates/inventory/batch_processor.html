@@ -1,0 +1,647 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block title %}Batch Order Processor - Queue & Stack Visualization{% endblock %}
+
+{% block extra_css %}
+<style>
+    .processor-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
+    }
+
+    .stat-card.warning {
+        border-left-color: #ffc107;
+    }
+
+    .stat-card.success {
+        border-left-color: #28a745;
+    }
+
+    .stat-card.info {
+        border-left-color: #17a2b8;
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #333;
+        margin: 0.5rem 0;
+    }
+
+    .stat-label {
+        color: #666;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .btn-process {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        font-size: 1.1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-process:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-visualize {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        font-size: 1.1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-visualize:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+    }
+
+    .visualization-container {
+        display: none;
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+
+    .visualization-container.active {
+        display: block;
+    }
+
+    .viz-section {
+        margin-bottom: 2rem;
+    }
+
+    .viz-title {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 0.5rem;
+    }
+
+    .queue-display, .stack-display {
+        display: flex;
+        flex-direction: row;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        min-height: 80px;
+        align-items: center;
+        overflow-x: auto;
+    }
+
+    .stack-display {
+        flex-direction: column-reverse;
+        min-height: 200px;
+        align-items: stretch;
+    }
+
+    .queue-item, .stack-item {
+        background: white;
+        border: 2px solid #667eea;
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        min-width: 120px;
+        text-align: center;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .queue-item.active, .stack-item.active {
+        background: #667eea;
+        color: white;
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .queue-item.processed, .stack-item.processed {
+        background: #28a745;
+        color: white;
+        border-color: #28a745;
+        opacity: 0.7;
+    }
+
+    .operation-log {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 6px;
+        max-height: 400px;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+    }
+
+    .log-entry {
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+        border-left: 3px solid #667eea;
+        background: rgba(102, 126, 234, 0.1);
+    }
+
+    .log-entry.success {
+        border-left-color: #28a745;
+        background: rgba(40, 167, 69, 0.1);
+    }
+
+    .log-entry.error {
+        border-left-color: #dc3545;
+        background: rgba(220, 53, 69, 0.1);
+    }
+
+    .log-timestamp {
+        color: #a0aec0;
+        font-size: 0.85rem;
+    }
+
+    .controls {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .playback-btn {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .playback-btn:hover {
+        background: #5568d3;
+    }
+
+    .playback-btn:disabled {
+        background: #cbd5e0;
+        cursor: not-allowed;
+    }
+
+    .step-counter {
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .order-preview {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .order-preview h3 {
+        margin-bottom: 1rem;
+        color: #333;
+    }
+
+    .order-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .order-list li {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .order-list li:last-child {
+        border-bottom: none;
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 0.5rem;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .alert-custom {
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+    }
+
+    .alert-custom.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border-left: 4px solid #17a2b8;
+    }
+
+    .alert-custom.success {
+        background: #d4edda;
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+
+    .alert-custom.error {
+        background: #f8d7da;
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">
+        <i class="fas fa-cogs"></i> Batch Order Processor
+        <span class="badge badge-primary">Queue + Stack Algorithm</span>
+    </h1>
+
+    <div class="alert-custom info">
+        <strong>Algorithm:</strong> Orders are processed using a <strong>FIFO Queue</strong> for order items and a <strong>LIFO Stack</strong> for batch allocation (reversed for FEFO behavior).
+    </div>
+
+    <!-- Statistics Dashboard -->
+    <div class="processor-stats">
+        <div class="stat-card warning">
+            <div class="stat-label">Orders in Queue</div>
+            <div class="stat-value">{{ orders_in_queue }}</div>
+        </div>
+
+        <div class="stat-card info">
+            <div class="stat-label">Total Items</div>
+            <div class="stat-value">{{ total_items_in_queue }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Unique Items</div>
+            <div class="stat-value">{{ unique_items }}</div>
+        </div>
+
+        <div class="stat-card success">
+            <div class="stat-label">Batches Available</div>
+            <div class="stat-value">{{ total_batches_available }}</div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <button id="processBtn" class="btn-process" onclick="processBatch()">
+            <i class="fas fa-play"></i> Process Queue
+        </button>
+        <button id="visualizeBtn" class="btn-visualize" onclick="showVisualization()">
+            <i class="fas fa-eye"></i> Show Visualization
+        </button>
+    </div>
+
+    <!-- Result Message -->
+    <div id="resultMessage"></div>
+
+    <!-- Visualization Container -->
+    <div id="visualizationContainer" class="visualization-container">
+        <!-- Playback Controls -->
+        <div class="controls">
+            <button class="playback-btn" id="playBtn" onclick="playSteps()">
+                <i class="fas fa-play"></i> Play
+            </button>
+            <button class="playback-btn" id="pauseBtn" onclick="pauseSteps()" disabled>
+                <i class="fas fa-pause"></i> Pause
+            </button>
+            <button class="playback-btn" id="stepBtn" onclick="nextStep()">
+                <i class="fas fa-step-forward"></i> Next Step
+            </button>
+            <button class="playback-btn" id="resetBtn" onclick="resetVisualization()">
+                <i class="fas fa-redo"></i> Reset
+            </button>
+            <span class="step-counter">
+                Step: <span id="currentStep">0</span> / <span id="totalSteps">0</span>
+            </span>
+        </div>
+
+        <!-- Order Queue Visualization -->
+        <div class="viz-section">
+            <div class="viz-title">
+                <i class="fas fa-list-ol"></i> Order Queue (FIFO)
+            </div>
+            <div id="orderQueue" class="queue-display">
+                <div class="text-muted">Queue will appear here during visualization</div>
+            </div>
+        </div>
+
+        <!-- Item Queue Visualization -->
+        <div class="viz-section">
+            <div class="viz-title">
+                <i class="fas fa-boxes"></i> Current Order Items Queue (FIFO)
+            </div>
+            <div id="itemQueue" class="queue-display">
+                <div class="text-muted">Item queue will appear here</div>
+            </div>
+        </div>
+
+        <!-- Batch Stack Visualization -->
+        <div class="viz-section">
+            <div class="viz-title">
+                <i class="fas fa-layer-group"></i> Batch Stack (LIFO - Reversed for FEFO)
+            </div>
+            <div id="batchStack" class="stack-display">
+                <div class="text-muted">Batch stack will appear here</div>
+            </div>
+        </div>
+
+        <!-- Operation Log -->
+        <div class="viz-section">
+            <div class="viz-title">
+                <i class="fas fa-terminal"></i> Operation Log
+            </div>
+            <div id="operationLog" class="operation-log">
+                <div class="text-muted">Operations will be logged here...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Preview -->
+    {% if new_orders %}
+    <div class="order-preview">
+        <h3><i class="fas fa-clipboard-list"></i> Orders in Queue (Preview)</h3>
+        <ul class="order-list">
+            {% for order in new_orders %}
+            <li>
+                <span>
+                    <strong>Order #{{ order.id }}</strong> - {{ order.customer_name }}
+                    <span class="badge badge-info">{{ order.orderitem_set.count }} items</span>
+                </span>
+                <span class="text-muted">{{ order.created_at|date:"Y-m-d H:i" }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="alert-custom info">
+        <i class="fas fa-info-circle"></i> No orders in queue. All orders have been processed or there are no NEW orders.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let traceData = null;
+let currentStepIndex = 0;
+let isPlaying = false;
+let playbackInterval = null;
+
+// Process batch without visualization
+async function processBatch() {
+    const btn = document.getElementById('processBtn');
+    const resultDiv = document.getElementById('resultMessage');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    try {
+        const response = await fetch('', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert-custom success">
+                    <strong>Success!</strong> Processed ${data.result.orders_processed} orders.
+                    Fully allocated: ${data.result.fully_allocated}, 
+                    Partially: ${data.result.partially_allocated}, 
+                    Failed: ${data.result.failed}
+                </div>
+            `;
+            // Refresh page after 2 seconds
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            throw new Error(data.error || 'Processing failed');
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="alert-custom error">
+                <strong>Error!</strong> ${error.message}
+            </div>
+        `;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> Process Queue';
+    }
+}
+
+// Show visualization with trace
+async function showVisualization() {
+    const btn = document.getElementById('visualizeBtn');
+    const container = document.getElementById('visualizationContainer');
+    const resultDiv = document.getElementById('resultMessage');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+    
+    try {
+        const response = await fetch('{% url "inventory:batch-processor-trace" %}');
+        const data = await response.json();
+        
+        if (data.success) {
+            traceData = data.trace;
+            container.classList.add('active');
+            
+            // Update step counter
+            document.getElementById('totalSteps').textContent = traceData.total_steps || 0;
+            document.getElementById('currentStep').textContent = 0;
+            currentStepIndex = 0;
+            
+            resultDiv.innerHTML = `
+                <div class="alert-custom success">
+                    <strong>Trace Loaded!</strong> Processed ${data.result.orders_processed} orders. 
+                    Use playback controls to visualize the algorithm.
+                </div>
+            `;
+            
+            // Initialize visualization
+            resetVisualization();
+        } else {
+            throw new Error(data.error || 'Failed to load trace');
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="alert-custom error">
+                <strong>Error!</strong> ${error.message}
+            </div>
+        `;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-eye"></i> Show Visualization';
+    }
+}
+
+// Render queue display
+function renderQueue(queueData, containerId) {
+    const container = document.getElementById(containerId);
+    if (!queueData || queueData.length === 0) {
+        container.innerHTML = '<div class="text-muted">Queue is empty</div>';
+        return;
+    }
+    
+    container.innerHTML = queueData.map((item, idx) => `
+        <div class="queue-item ${idx === 0 ? 'active' : ''}">
+            ${typeof item === 'object' ? item.label || item.id : item}
+        </div>
+    `).join('');
+}
+
+// Render stack display
+function renderStack(stackData, containerId) {
+    const container = document.getElementById(containerId);
+    if (!stackData || stackData.length === 0) {
+        container.innerHTML = '<div class="text-muted">Stack is empty</div>';
+        return;
+    }
+    
+    container.innerHTML = stackData.map((item, idx) => `
+        <div class="stack-item ${idx === stackData.length - 1 ? 'active' : ''}">
+            ${typeof item === 'object' ? item.label || item.id : item}
+        </div>
+    `).join('');
+}
+
+// Add log entry
+function addLogEntry(entry) {
+    const log = document.getElementById('operationLog');
+    const entryClass = entry.details?.success === false ? 'error' : 
+                      entry.action.includes('complete') ? 'success' : '';
+    
+    const logHTML = `
+        <div class="log-entry ${entryClass}">
+            <span class="log-timestamp">[${entry.timestamp}]</span>
+            <strong>${entry.action}</strong>: ${entry.description || ''}
+        </div>
+    `;
+    
+    log.insertAdjacentHTML('beforeend', logHTML);
+    log.scrollTop = log.scrollHeight;
+}
+
+// Execute next step
+function nextStep() {
+    if (!traceData || !traceData.steps) return;
+    
+    if (currentStepIndex >= traceData.steps.length) {
+        pauseSteps();
+        return;
+    }
+    
+    const step = traceData.steps[currentStepIndex];
+    
+    // Update displays based on step
+    if (step.details?.order_queue_snapshot) {
+        renderQueue(step.details.order_queue_snapshot, 'orderQueue');
+    }
+    
+    if (step.details?.item_queue_snapshot) {
+        renderQueue(step.details.item_queue_snapshot, 'itemQueue');
+    }
+    
+    if (step.details?.batch_stack_snapshot) {
+        renderStack(step.details.batch_stack_snapshot, 'batchStack');
+    }
+    
+    // Add to log
+    addLogEntry(step);
+    
+    // Update counter
+    currentStepIndex++;
+    document.getElementById('currentStep').textContent = currentStepIndex;
+    
+    // Enable/disable buttons
+    document.getElementById('playBtn').disabled = currentStepIndex >= traceData.steps.length;
+    document.getElementById('stepBtn').disabled = currentStepIndex >= traceData.steps.length;
+}
+
+// Play automation
+function playSteps() {
+    if (isPlaying) return;
+    
+    isPlaying = true;
+    document.getElementById('playBtn').disabled = true;
+    document.getElementById('pauseBtn').disabled = false;
+    
+    playbackInterval = setInterval(() => {
+        nextStep();
+        
+        if (currentStepIndex >= traceData.steps.length) {
+            pauseSteps();
+        }
+    }, 1000); // 1 step per second
+}
+
+// Pause playback
+function pauseSteps() {
+    isPlaying = false;
+    clearInterval(playbackInterval);
+    document.getElementById('playBtn').disabled = false;
+    document.getElementById('pauseBtn').disabled = true;
+}
+
+// Reset visualization
+function resetVisualization() {
+    pauseSteps();
+    currentStepIndex = 0;
+    document.getElementById('currentStep').textContent = 0;
+    
+    // Clear displays
+    document.getElementById('orderQueue').innerHTML = '<div class="text-muted">Queue will appear here during visualization</div>';
+    document.getElementById('itemQueue').innerHTML = '<div class="text-muted">Item queue will appear here</div>';
+    document.getElementById('batchStack').innerHTML = '<div class="text-muted">Batch stack will appear here</div>';
+    document.getElementById('operationLog').innerHTML = '<div class="text-muted">Operations will be logged here...</div>';
+    
+    // Enable buttons
+    document.getElementById('playBtn').disabled = false;
+    document.getElementById('stepBtn').disabled = false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,45 @@
+<div class="dropdown-menu dropdown-menu-end p-0" style="min-width: 320px; max-height: 400px; overflow-y: auto;">
+    <div class="dropdown-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-bell"></i> Notifications</span>
+        {% if unread_count > 0 %}
+        <form method="post" action="{% url 'inventory:notifications-read-all' %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-link text-decoration-none p-0">
+                Mark all read
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    <div class="dropdown-divider"></div>
+    
+    {% if notifications %}
+        {% for notification in notifications %}
+        <a href="#" class="dropdown-item {% if not notification.is_read %}bg-light{% endif %}" 
+           hx-post="{% url 'inventory:notification-read' notification.id %}"
+           hx-swap="none">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <p class="mb-1 small">{{ notification.message|truncatewords:15 }}</p>
+                    <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                </div>
+                {% if not notification.is_read %}
+                <span class="badge bg-primary ms-2">New</span>
+                {% endif %}
+            </div>
+        </a>
+        <div class="dropdown-divider"></div>
+        {% endfor %}
+    {% else %}
+        <div class="dropdown-item text-center text-muted">
+            No notifications
+        </div>
+    {% endif %}
+</div>
+
+<!-- Badge for notification count -->
+{% if unread_count > 0 %}
+<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+    {{ unread_count }}
+    <span class="visually-hidden">unread notifications</span>
+</span>
+{% endif %}

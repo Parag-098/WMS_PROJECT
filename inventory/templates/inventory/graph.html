@@ -1,0 +1,263 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block title %}Inventory Flow Analysis{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+  <div class="d-flex align-items-end justify-content-between flex-wrap gap-2 mb-3">
+    <div>
+      <h3 class="mb-1">Inventory Flow Analysis</h3>
+      <div class="text-muted small">Real-time visualization of inventory relationships: Items → Batches → Orders → Shipments</div>
+    </div>
+    <div class="d-flex gap-2">
+      <button id="refreshGraph" class="btn btn-primary btn-sm">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+      <button id="fitGraph" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrows-angle-expand"></i> Fit to View
+      </button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <div class="d-flex gap-4 flex-wrap small">
+        <div><span class="badge" style="background: #4A90E2;">Items</span> Products in inventory</div>
+        <div><span class="badge" style="background: #50C878;">Batches</span> Stock lots with quantities</div>
+        <div><span class="badge" style="background: #FF9800;">Orders</span> Customer orders (New/Allocated/Picked)</div>
+        <div><span class="badge" style="background: #9C27B0;">Shipments</span> Outbound shipments</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="cy" class="border rounded" style="height: 75vh; width: 100%; background: #fafafa;"></div>
+  
+  <!-- Node Details Panel -->
+  <div id="nodeDetails" class="card mt-3" style="display: none;">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Selection Details</strong>
+      <button id="closeDetails" class="btn-close btn-sm"></button>
+    </div>
+    <div class="card-body" id="nodeDetailsContent">
+      <!-- Details populated by JavaScript -->
+    </div>
+  </div>
+</div>
+
+<!-- Cytoscape.js -->
+<script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+
+<script>
+(function() {
+  const dataUrl = "{% url 'inventory:graph_data' %}";
+  let cy;
+
+  function loadGraph() {
+    fetch(dataUrl)
+      .then(res => res.json())
+      .then(data => {
+        if (cy) {
+          cy.destroy();
+        }
+        
+        cy = cytoscape({
+          container: document.getElementById('cy'),
+          elements: data.elements,
+          style: [
+            {
+              selector: 'node',
+              style: {
+                'label': 'data(label)',
+                'text-valign': 'center',
+                'text-halign': 'center',
+                'font-size': '10px',
+                'text-wrap': 'wrap',
+                'text-max-width': '80px',
+                'width': 60,
+                'height': 60,
+                'border-width': 2,
+                'border-color': '#fff'
+              }
+            },
+            {
+              selector: '.item-node',
+              style: {
+                'background-color': '#4A90E2',
+                'shape': 'roundrectangle',
+                'width': 80,
+                'height': 60
+              }
+            },
+            {
+              selector: '.batch-node',
+              style: {
+                'background-color': '#50C878',
+                'shape': 'ellipse',
+                'width': 70,
+                'height': 70
+              }
+            },
+            {
+              selector: '.order-node',
+              style: {
+                'background-color': '#FF9800',
+                'shape': 'diamond',
+                'width': 70,
+                'height': 70
+              }
+            },
+            {
+              selector: '.status-new',
+              style: {
+                'background-color': '#FF5722'
+              }
+            },
+            {
+              selector: '.status-allocated',
+              style: {
+                'background-color': '#FF9800'
+              }
+            },
+            {
+              selector: '.status-picked',
+              style: {
+                'background-color': '#FFC107'
+              }
+            },
+            {
+              selector: '.shipment-node',
+              style: {
+                'background-color': '#9C27B0',
+                'shape': 'rectangle',
+                'width': 90,
+                'height': 50
+              }
+            },
+            {
+              selector: 'edge',
+              style: {
+                'width': 2,
+                'line-color': '#ccc',
+                'target-arrow-color': '#ccc',
+                'target-arrow-shape': 'triangle',
+                'curve-style': 'bezier',
+                'label': 'data(label)',
+                'font-size': '8px',
+                'text-rotation': 'autorotate',
+                'text-margin-y': -10
+              }
+            },
+            {
+              selector: '.item-batch-edge',
+              style: {
+                'line-color': '#4CAF50',
+                'target-arrow-color': '#4CAF50'
+              }
+            },
+            {
+              selector: '.order-item-edge',
+              style: {
+                'line-color': '#FF9800',
+                'target-arrow-color': '#FF9800',
+                'line-style': 'dashed'
+              }
+            },
+            {
+              selector: '.order-shipment-edge',
+              style: {
+                'line-color': '#9C27B0',
+                'target-arrow-color': '#9C27B0',
+                'width': 3
+              }
+            },
+            {
+              selector: ':selected',
+              style: {
+                'border-width': 4,
+                'border-color': '#FFD700',
+                'background-color': '#FFD700',
+                'line-color': '#FFD700'
+              }
+            }
+          ],
+          layout: {
+            name: 'cose',
+            animate: false,
+            nodeRepulsion: 8000,
+            idealEdgeLength: 100,
+            edgeElasticity: 100,
+            gravity: 0.1
+          },
+          wheelSensitivity: 0.2
+        });
+
+        // Node click handler - show details
+        cy.on('tap', 'node', function(evt) {
+          const node = evt.target;
+          const data = node.data();
+          let details = '';
+          
+          if (data.type === 'item') {
+            details = `
+              <h6>Item Details</h6>
+              <p><strong>SKU:</strong> ${data.sku}</p>
+              <p><strong>Available Stock:</strong> ${data.stock} units</p>
+              <p class="small text-muted">Click on connected batches to see lot details</p>
+            `;
+          } else if (data.type === 'batch') {
+            details = `
+              <h6>Batch Details</h6>
+              <p><strong>Lot Number:</strong> ${data.lot_no}</p>
+              <p><strong>Available Qty:</strong> ${data.qty}</p>
+            `;
+          } else if (data.type === 'order') {
+            details = `
+              <h6>Order Details</h6>
+              <p><strong>Order Number:</strong> ${data.order_no}</p>
+              <p><strong>Status:</strong> <span class="badge bg-warning">${data.status}</span></p>
+              <a href="/orders/${node.id().split('_')[1]}/" class="btn btn-sm btn-primary">View Order</a>
+            `;
+          } else if (data.type === 'shipment') {
+            details = `
+              <h6>Shipment Details</h6>
+              <p><strong>Tracking:</strong> ${data.tracking || 'Pending'}</p>
+            `;
+          }
+          
+          document.getElementById('nodeDetailsContent').innerHTML = details;
+          document.getElementById('nodeDetails').style.display = 'block';
+        });
+        
+        // Fit to view
+        cy.fit();
+      })
+      .catch(err => {
+        console.error('Error loading graph:', err);
+        document.getElementById('cy').innerHTML = `
+          <div class="alert alert-danger m-3">
+            Failed to load graph data. Please refresh the page.
+          </div>
+        `;
+      });
+  }
+
+  // Initial load
+  loadGraph();
+
+  // Refresh button
+  document.getElementById('refreshGraph').addEventListener('click', loadGraph);
+  
+  // Fit button
+  document.getElementById('fitGraph').addEventListener('click', () => {
+    if (cy) cy.fit();
+  });
+  
+  // Close details
+  document.getElementById('closeDetails').addEventListener('click', () => {
+    document.getElementById('nodeDetails').style.display = 'none';
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+sku,name,description,unit,reorder_threshold
+WIDGET-001,Standard Widget,Industrial grade widget,pcs,50
+WIDGET-002,Premium Widget,Enhanced durability widget,pcs,30
+WIDGET-003,Mini Widget,Compact widget for light use,pcs,60
+WIDGET-004,Heavy Widget,Heavy-duty industrial widget,pcs,25
+WIDGET-005,Smart Widget,Sensor-enabled smart widget,pcs,40
+GADGET-001,Basic Gadget,Entry-level gadget for general use,pcs,100
+GADGET-002,Pro Gadget,Professional gadget with warranty,pcs,25
+GADGET-003,Smart Gadget,IoT-enabled gadget,pcs,30
+GADGET-004,Industrial Gadget,Heavy-use industrial gadget,pcs,20
+GADGET-005,Compact Gadget,Compact assistive gadget,pcs,60
+TOOL-001,Precision Tool Set,High accuracy tool set,set,10
+TOOL-002,Power Tool Kit,Heavy-duty power tool kit,kit,5
+TOOL-003,Hand Tool Kit,Standard home tool kit,set,12
+TOOL-004,Safety Tool Set,Protective tool kit,set,15
+TOOL-005,Mechanical Tool Kit,Automotive servicing toolkit,set,8
+PART-001,Replacement Part A,Common replacement part,pcs,200
+PART-002,Replacement Part B,Specialized part,pcs,75
+PART-003,Replacement Part C,Advanced spare component,pcs,120
+PART-004,Replacement Part D,Heavy-duty replacement unit,pcs,60
+PART-005,Replacement Part E,Electronic assembly component,pcs,150
+MATERIAL-001,Raw Material Alpha,Industrial raw material,kg,500
+MATERIAL-002,Raw Material Beta,Premium manufacturing quality,kg,300
+MATERIAL-003,Raw Material Gamma,Bulk raw material,kg,700
+MATERIAL-004,Raw Material Delta,Specialized chemical raw stock,kg,500
+MATERIAL-005,Raw Material Omega,High-density raw base,kg,450
+COMPONENT-001,Component X,Precision electronic component,pcs,150
+COMPONENT-002,Component Y,Standard electronic part,pcs,180
+COMPONENT-003,Component Z,Advanced AI chip,pcs,120
+COMPONENT-004,Component A,Small computing IC,pcs,200
+COMPONENT-005,Component B,Motor driver component,pcs,140
+SUPPLY-001,Office Supply Pack,General office supply pack,pack,40
+SUPPLY-002,Cleaning Supplies,Industrial cleaning set,kit,20
+SUPPLY-003,Packaging Supplies,Mixed packaging kit,pack,50
+SUPPLY-004,Electrical Supplies,Small electrical consumables,pack,60
+SUPPLY-005,Workshop Supplies,Workshop consumables,pack,55
+EQUIPMENT-001,Safety Kit,Protective equipment,set,15
+EQUIPMENT-002,Testing Equipment,Industrial lab testing device,pcs,10
+EQUIPMENT-003,Warehouse Machine,Heavy duty warehouse machine,pcs,3
+EQUIPMENT-004,Lifting Equipment,Hydraulic lifting unit,pcs,6
+EQUIPMENT-005,Measuring Equipment,Precision measuring set,pcs,12
+STEEL-001,Steel Rod,Mild steel rod,mtr,500
+STEEL-002,Steel Plate,High durability sheet,sheet,250
+STEEL-003,Steel Wire,High strength wire,mtr,400
+CEMENT-001,Cement Bag,50kg OPC cement bag,bag,250
+SAND-001,River Sand,Refined sand,kg,800
+BRICK-001,Clay Brick,Standard red brick,pcs,2000
+BRICK-002,White Brick,Premium white brick,pcs,1500
+CHEM-001,Chemical A,Industrial solvent,ltr,300
+CHEM-002,Chemical B,High quality solvent,ltr,250
+CHEM-003,Chemical C,Corrosion-resistant agent,ltr,200
+MED-001,Tablet A,General purpose medic tablets,box,60
+MED-002,Tablet B,Premium medication,box,50
+MED-003,Capsule A,Oral medical capsule,box,70
+MED-004,Injection A,Hospital grade injection,vial,40
+MED-005,Injection B,Sterile syringe injection,vial,35
+FOOD-001,Rice Sack,Premium basmati rice,kg,500
+FOOD-002,Wheat Bag,Quality wheat grains,kg,600
+FOOD-003,Sugar Pack,Refined sugar pack,kg,350
+FOOD-004,Ghee Pack,Premium ghee,ltr,100
+FOOD-005,Oil Pack,Refined sunflower oil,ltr,200
+TEXTILE-001,Cotton Fabric,High-density textile,mtr,500
+TEXTILE-002,Silk Fabric,Premium silk,mtr,200
+TEXTILE-003,Wool Roll,Pure wool roll,mtr,250
+TEXTILE-004,Jute Fiber,Quality jute roll,mtr,600
+TEXTILE-005,Polyester Fabric,Commercial-grade polyester,mtr,350
+PAPER-001,Paper Ream,A4 white paper,ream,100
+PAPER-002,Notebook,200-page notebook,pcs,200
+PAPER-003,Marker Pen,Water-based markers,pcs,200
+PAPER-004,Pen Set,Ball pens,box,150
+PAPER-005,Diary,Daily diary journal,pcs,120
+AUTO-001,Auto Tyre,Four-wheeler tyre,pcs,40
+AUTO-002,Air Filter,Engine air filter,pcs,100
+AUTO-003,Oil Filter,Engine oil filter,pcs,120
+AUTO-004,Battery Pack,Vehicle battery pack,pcs,30
+AUTO-005,Engine Belt,Automotive belt,pcs,90
+CABLE-001,Electric Cable,Industrial grade,mtr,200
+CABLE-002,LAN Cable,Data cable,mtr,150
+CABLE-003,Fibre Cable,Optical fibre,mtr,100
+BAT-001,Power Cell,Rechargeable cell,pcs,120
+BAT-002,Battery Block,Lithium battery,pcs,50
+MECH-001,Gear Wheel,Metal gear wheel,pcs,150
+MECH-002,Shaft,Metal shaft,pcs,100
+MECH-003,Bearing,Bearing set,pcs,200
+MECH-004,Clutch Plate,Automotive clutch,pcs,60
+MECH-005,Piston,Engine piston,pcs,140
+PACK-001,Box Large,Large carton box,pcs,350
+PACK-002,Box Small,Small carton box,pcs,500
+PACK-003,Tape Industrial,Packing tape,roll,200
+PACK-004,Shipping Label,Logistics label pack,roll,400
+PACK-005,Strap Belt,PET strap belt,roll,350

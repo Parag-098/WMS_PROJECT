@@ -1,0 +1,80 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Ship Order - {{ order.order_no }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-truck"></i> Ship Order: {{ order.order_no }}</h2>
+    <p class="text-muted">Customer: {{ order.customer_name }} | Status: <span class="badge bg-success">{{ order.get_status_display }}</span></p>
+    
+    <hr>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <h4>Shipment Details</h4>
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="carrier" class="form-label">Carrier</label>
+                <input type="text" 
+                       name="carrier" 
+                       id="carrier" 
+                       class="form-control" 
+                       placeholder="e.g., FedEx, UPS, DHL">
+                <small class="text-muted">Optional shipping carrier</small>
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label for="shipping_address" class="form-label">Shipping Address <span class="text-danger">*</span></label>
+                <textarea name="shipping_address" 
+                          id="shipping_address" 
+                          class="form-control" 
+                          rows="4" 
+                          required 
+                          placeholder="Enter full shipping address"></textarea>
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label for="notes" class="form-label">Shipment Notes</label>
+                <textarea name="notes" 
+                          id="notes" 
+                          class="form-control" 
+                          rows="3" 
+                          placeholder="Optional shipment notes"></textarea>
+            </div>
+        </div>
+        
+        <h5 class="mt-4">Order Items Summary</h5>
+        <table class="table table-sm table-bordered">
+            <thead>
+                <tr>
+                    <th>Item SKU</th>
+                    <th>Item Name</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order_item in order.items.all %}
+                <tr>
+                    <td>{{ order_item.item.sku }}</td>
+                    <td>{{ order_item.item.name }}</td>
+                    <td>{{ order_item.qty_requested }} {{ order_item.item.unit }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-send"></i> Create Shipment
+            </button>
+            <a href="{% url 'inventory:order-detail' order.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

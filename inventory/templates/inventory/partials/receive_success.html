@@ -1,0 +1,15 @@
+<div class="card border-success">
+    <div class="card-header bg-success text-white">
+        <h5>✓ Success</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-success">
+            <strong>{{ created_count }}</strong> batch(es) successfully created for <strong>{{ item.sku }}</strong> - {{ item.name }}
+        </div>
+        <div class="d-grid gap-2">
+            <a href="{% url 'inventory:item-detail' sku=item.sku %}" class="btn btn-primary">View Item</a>
+            <a href="{% url 'inventory:batch-list' %}" class="btn btn-secondary">View All Batches</a>
+            <button type="button" class="btn btn-outline-primary" onclick="window.location.reload()">Receive More</button>
+        </div>
+    </div>
+</div>

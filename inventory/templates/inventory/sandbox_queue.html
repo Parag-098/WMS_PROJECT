@@ -1,0 +1,377 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block title %}Order Priority Queue{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+  <h3><i class="bi bi-list-task"></i> Order Priority Queue Manager</h3>
+  <p class="text-muted">
+    Manage order processing priorities. Orders with higher priority or earlier due dates are processed first. Useful for planning daily fulfillment schedules.
+  </p>
+
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-center border-danger">
+        <div class="card-body">
+          <h5 class="mb-0 text-danger" id="highPriorityCount">0</h5>
+          <small class="text-muted">High Priority</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center border-warning">
+        <div class="card-body">
+          <h5 class="mb-0 text-warning" id="mediumPriorityCount">0</h5>
+          <small class="text-muted">Medium Priority</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center border-success">
+        <div class="card-body">
+          <h5 class="mb-0 text-success" id="lowPriorityCount">0</h5>
+          <small class="text-muted">Low Priority</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center bg-primary text-white">
+        <div class="card-body">
+          <h5 class="mb-0" id="totalOrders">0</h5>
+          <small>Total in Queue</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Order Form -->
+  <div class="card mb-3">
+    <div class="card-header"><strong>Add Order to Queue</strong></div>
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">Order Number</label>
+          <input id="orderNoInput" class="form-control" placeholder="e.g., ORD-001" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Customer Name</label>
+          <input id="customerInput" class="form-control" placeholder="e.g., Acme Corp" />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Priority</label>
+          <select id="prioritySelect" class="form-select">
+            <option value="3">High (Rush)</option>
+            <option value="2" selected>Medium (Normal)</option>
+            <option value="1">Low (Standard)</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Due Date</label>
+          <input id="dueDateInput" class="form-control" type="date" />
+        </div>
+        <div class="col-md-2">
+          <button id="addOrderBtn" class="btn btn-primary w-100">
+            <i class="bi bi-plus-circle"></i> Add
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Queue Display -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Processing Queue (Priority & Due Date Sorted)</strong>
+      <div>
+        <button id="processNextBtn" class="btn btn-success btn-sm me-2">
+          <i class="bi bi-play-fill"></i> Process Next
+        </button>
+        <button id="sortBtn" class="btn btn-outline-primary btn-sm me-2">
+          <i class="bi bi-sort-down"></i> Re-sort
+        </button>
+        <button id="clearQueueBtn" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-trash"></i> Clear Queue
+        </button>
+      </div>
+    </div>
+    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+      <div id="orderQueue" class="d-flex flex-column gap-2">
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+          <p class="mt-2">Order queue is empty. Add orders above to simulate processing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Processed Orders -->
+  <div class="card mt-3">
+    <div class="card-header"><strong>Processed Orders (Today)</strong></div>
+    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+      <div id="processedOrders" class="d-flex flex-column gap-2">
+        <div class="text-center text-muted py-3">
+          <p class="small">No orders processed yet</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.order-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.priority-high {
+  border-left: 5px solid #dc3545;
+}
+.priority-medium {
+  border-left: 5px solid #ffc107;
+}
+.priority-low {
+  border-left: 5px solid #198754;
+}
+.badge-priority-high {
+  background: #dc3545;
+}
+.badge-priority-medium {
+  background: #ffc107;
+  color: #000;
+}
+.badge-priority-low {
+  background: #198754;
+}
+.processed-order {
+  opacity: 0.8;
+  background: #f8f9fa;
+}
+</style>
+
+<script>
+(function(){
+  const orderQueueEl = document.getElementById('orderQueue');
+  const processedOrdersEl = document.getElementById('processedOrders');
+  const orderNoInput = document.getElementById('orderNoInput');
+  const customerInput = document.getElementById('customerInput');
+  const prioritySelect = document.getElementById('prioritySelect');
+  const dueDateInput = document.getElementById('dueDateInput');
+  const addOrderBtn = document.getElementById('addOrderBtn');
+  const processNextBtn = document.getElementById('processNextBtn');
+  const sortBtn = document.getElementById('sortBtn');
+  const clearQueueBtn = document.getElementById('clearQueueBtn');
+  
+  let orderQueue = [];
+  let processedOrders = [];
+  
+  // Set default due date to today + 3 days
+  const defaultDueDate = new Date();
+  defaultDueDate.setDate(defaultDueDate.getDate() + 3);
+  dueDateInput.value = defaultDueDate.toISOString().split('T')[0];
+  
+  function updateStats() {
+    const highCount = orderQueue.filter(o => o.priority === 3).length;
+    const mediumCount = orderQueue.filter(o => o.priority === 2).length;
+    const lowCount = orderQueue.filter(o => o.priority === 1).length;
+    
+    document.getElementById('highPriorityCount').textContent = highCount;
+    document.getElementById('mediumPriorityCount').textContent = mediumCount;
+    document.getElementById('lowPriorityCount').textContent = lowCount;
+    document.getElementById('totalOrders').textContent = orderQueue.length;
+  }
+  
+  function sortQueue() {
+    // Sort by: 1) Priority (high to low), 2) Due date (earliest first)
+    orderQueue.sort((a, b) => {
+      if (b.priority !== a.priority) {
+        return b.priority - a.priority;
+      }
+      return new Date(a.dueDate) - new Date(b.dueDate);
+    });
+  }
+  
+  function getPriorityLabel(priority) {
+    if (priority === 3) return 'High (Rush)';
+    if (priority === 2) return 'Medium';
+    return 'Low (Standard)';
+  }
+  
+  function getPriorityClass(priority) {
+    if (priority === 3) return 'priority-high';
+    if (priority === 2) return 'priority-medium';
+    return 'priority-low';
+  }
+  
+  function getPriorityBadgeClass(priority) {
+    if (priority === 3) return 'badge-priority-high';
+    if (priority === 2) return 'badge-priority-medium';
+    return 'badge-priority-low';
+  }
+  
+  function getDaysUntilDue(dueDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDate);
+    due.setHours(0, 0, 0, 0);
+    const diffTime = due - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return `<span class="text-danger"><strong>OVERDUE by ${Math.abs(diffDays)} days!</strong></span>`;
+    if (diffDays === 0) return '<span class="text-warning"><strong>Due TODAY</strong></span>';
+    if (diffDays === 1) return '<span class="text-info">Due tomorrow</span>';
+    return `Due in ${diffDays} days`;
+  }
+  
+  function renderQueue() {
+    if (orderQueue.length === 0) {
+      orderQueueEl.innerHTML = `
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+          <p class="mt-2">Order queue is empty. Add orders above to simulate processing.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    orderQueueEl.innerHTML = orderQueue.map((order, idx) => `
+      <div class="order-card card ${getPriorityClass(order.priority)}">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-secondary">#${idx + 1}</span>
+                <strong class="fs-5">${order.orderNo}</strong>
+                <span class="badge ${getPriorityBadgeClass(order.priority)}">${getPriorityLabel(order.priority)}</span>
+              </div>
+              <div class="mb-1">
+                <i class="bi bi-person"></i> <strong>${order.customer}</strong>
+              </div>
+              <div class="text-muted small">
+                <i class="bi bi-calendar3"></i> ${getDaysUntilDue(order.dueDate)}
+              </div>
+              <div class="text-muted small">
+                <i class="bi bi-clock"></i> Added: ${new Date(order.timestamp).toLocaleString()}
+              </div>
+            </div>
+            <button class="btn btn-outline-danger btn-sm" onclick="removeOrder(${idx})">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  function renderProcessedOrders() {
+    if (processedOrders.length === 0) {
+      processedOrdersEl.innerHTML = `
+        <div class="text-center text-muted py-3">
+          <p class="small">No orders processed yet</p>
+        </div>
+      `;
+      return;
+    }
+    
+    processedOrdersEl.innerHTML = processedOrders.slice().reverse().map(order => `
+      <div class="processed-order card p-2">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="small">
+            <strong>${order.orderNo}</strong> - ${order.customer}
+            <span class="badge ${getPriorityBadgeClass(order.priority)} ms-2">${getPriorityLabel(order.priority)}</span>
+          </div>
+          <div class="text-success small">
+            <i class="bi bi-check-circle-fill"></i> ${new Date(order.processedAt).toLocaleTimeString()}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  // Add order to queue
+  addOrderBtn.addEventListener('click', function() {
+    const orderNo = orderNoInput.value.trim();
+    const customer = customerInput.value.trim();
+    const priority = parseInt(prioritySelect.value);
+    const dueDate = dueDateInput.value;
+    
+    if (!orderNo || !customer || !dueDate) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    orderQueue.push({
+      orderNo: orderNo,
+      customer: customer,
+      priority: priority,
+      dueDate: dueDate,
+      timestamp: new Date().toISOString()
+    });
+    
+    sortQueue();
+    updateStats();
+    renderQueue();
+    
+    // Clear form
+    orderNoInput.value = '';
+    customerInput.value = '';
+    prioritySelect.value = '2';
+    const newDueDate = new Date();
+    newDueDate.setDate(newDueDate.getDate() + 3);
+    dueDateInput.value = newDueDate.toISOString().split('T')[0];
+    orderNoInput.focus();
+  });
+  
+  // Process next order (dequeue from front)
+  processNextBtn.addEventListener('click', function() {
+    if (orderQueue.length === 0) {
+      alert('Order queue is empty');
+      return;
+    }
+    
+    const processedOrder = orderQueue.shift();
+    processedOrder.processedAt = new Date().toISOString();
+    processedOrders.push(processedOrder);
+    
+    updateStats();
+    renderQueue();
+    renderProcessedOrders();
+  });
+  
+  // Remove specific order
+  window.removeOrder = function(idx) {
+    if (confirm('Remove this order from the queue?')) {
+      orderQueue.splice(idx, 1);
+      updateStats();
+      renderQueue();
+    }
+  };
+  
+  // Re-sort queue
+  sortBtn.addEventListener('click', function() {
+    sortQueue();
+    renderQueue();
+    alert('Queue re-sorted by priority and due date');
+  });
+  
+  // Clear queue
+  clearQueueBtn.addEventListener('click', function() {
+    if (orderQueue.length === 0) return;
+    if (confirm('Clear entire order queue?')) {
+      orderQueue = [];
+      updateStats();
+      renderQueue();
+    }
+  });
+  
+  // Initialize
+  updateStats();
+  renderQueue();
+  renderProcessedOrders();
+})();
+</script>
+{% endblock %}

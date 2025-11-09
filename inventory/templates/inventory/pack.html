@@ -1,0 +1,69 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Pack Order - {{ order.order_no }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-box"></i> Pack Order: {{ order.order_no }}</h2>
+    <p class="text-muted">Customer: {{ order.customer_name }} | Status: <span class="badge bg-warning">{{ order.get_status_display }}</span></p>
+    
+    <hr>
+    
+    <form method="post" hx-post="{% url 'inventory:order-pack' order.id %}" hx-target="#pack-result">
+        {% csrf_token %}
+        
+        <h4>Packing Confirmation</h4>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Item SKU</th>
+                    <th>Item Name</th>
+                    <th>Requested</th>
+                    <th>Allocated</th>
+                    <th>Packed Qty</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pack_item in pack_items %}
+                <tr>
+                    <td><strong>{{ pack_item.order_item.item.sku }}</strong></td>
+                    <td>{{ pack_item.order_item.item.name }}</td>
+                    <td>{{ pack_item.order_item.qty_requested }} {{ pack_item.order_item.item.unit }}</td>
+                    <td>{{ pack_item.total_allocated }} {{ pack_item.order_item.item.unit }}</td>
+                    <td>
+                        <input type="number" 
+                               name="qty_packed_{{ pack_item.order_item.id }}" 
+                               value="{{ pack_item.total_allocated }}" 
+                               step="0.001" 
+                               min="0" 
+                               class="form-control form-control-sm" 
+                               style="width: 120px;" 
+                               required>
+                    </td>
+                    <td>
+                        <input type="text" 
+                               name="notes_{{ pack_item.order_item.id }}" 
+                               class="form-control form-control-sm" 
+                               placeholder="Adjustment notes...">
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">No items to pack.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="mt-3">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-box-seam"></i> Confirm Pack
+            </button>
+            <a href="{% url 'inventory:item-list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+    
+    <div id="pack-result" class="mt-4"></div>
+</div>
+{% endblock %}

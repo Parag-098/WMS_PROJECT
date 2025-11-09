@@ -1,0 +1,124 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Bulk Import{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-upload"></i> Bulk Import</h2>
+    <p class="text-muted">Upload CSV or XLSX files to import Items, Batches, or Orders in bulk</p>
+    
+    <hr>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <form method="post" enctype="multipart/form-data" hx-post="{% url 'inventory:bulk-import' %}" hx-target="#import-result">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="{{ form.model_type.id_for_label }}" class="form-label">Import Type <span class="text-danger">*</span></label>
+                    {{ form.model_type }}
+                    {% if form.model_type.errors %}
+                        <div class="text-danger">{{ form.model_type.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.file.id_for_label }}" class="form-label">File <span class="text-danger">*</span></label>
+                    {{ form.file }}
+                    {% if form.file.errors %}
+                        <div class="text-danger">{{ form.file.errors }}</div>
+                    {% endif %}
+                    <small class="text-muted">Supported formats: CSV, XLSX. Max size: 10MB</small>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-upload"></i> Upload & Preview
+                </button>
+                <a href="{% url 'inventory:item-list' %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+        
+        <div class="col-md-6">
+            <h5>File Format Requirements</h5>
+            
+            <div class="accordion" id="formatAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#itemFormat">
+                            Items
+                        </button>
+                    </h2>
+                    <div id="itemFormat" class="accordion-collapse collapse" data-bs-parent="#formatAccordion">
+                        <div class="accordion-body">
+                            <p>Required columns:</p>
+                            <ul>
+                                <li><code>sku</code> (unique identifier)</li>
+                                <li><code>name</code> (item name)</li>
+                            </ul>
+                            <p>Optional columns:</p>
+                            <ul>
+                                <li><code>description</code></li>
+                                <li><code>unit</code> (default: pcs)</li>
+                                <li><code>reorder_threshold</code></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#batchFormat">
+                            Batches
+                        </button>
+                    </h2>
+                    <div id="batchFormat" class="accordion-collapse collapse" data-bs-parent="#formatAccordion">
+                        <div class="accordion-body">
+                            <p>Required columns:</p>
+                            <ul>
+                                <li><code>item_sku</code> (must exist)</li>
+                                <li><code>lot_no</code> (batch identifier)</li>
+                                <li><code>received_qty</code></li>
+                            </ul>
+                            <p>Optional columns:</p>
+                            <ul>
+                                <li><code>expiry_date</code> (YYYY-MM-DD format)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#orderFormat">
+                            Orders
+                        </button>
+                    </h2>
+                    <div id="orderFormat" class="accordion-collapse collapse" data-bs-parent="#formatAccordion">
+                        <div class="accordion-body">
+                            <p>Required columns:</p>
+                            <ul>
+                                <li><code>order_no</code> (unique per order)</li>
+                                <li><code>customer_name</code></li>
+                                <li><code>item_sku</code> (must exist)</li>
+                                <li><code>qty_requested</code></li>
+                            </ul>
+                            <p>Note: Multiple rows with same order_no will create order items</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="import-result" class="mt-4"></div>
+</div>
+
+<style>
+    select, input[type="file"] {
+        width: 100%;
+        padding: 0.375rem 0.75rem;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+    }
+</style>
+{% endblock %}

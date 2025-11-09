@@ -1,0 +1,105 @@
+{% extends "inventory/base.html" %}
+{% load static %}
+
+{% block title %}Mark as Delivered - Order {{ order.order_no }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="bi bi-check-circle"></i> Confirm Delivery</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Confirm that this order has been delivered to the customer.</strong>
+                        <p class="mb-0 mt-2">This will update the order status to "Delivered" and mark the shipment as complete.</p>
+                    </div>
+
+                    <h5 class="mb-3">Order Details</h5>
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="150">Order Number:</th>
+                            <td><strong>{{ order.order_no }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Customer:</th>
+                            <td>{{ order.customer_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td><span class="badge bg-primary">{{ order.get_status_display }}</span></td>
+                        </tr>
+                        <tr>
+                            <th>Created:</th>
+                            <td>{{ order.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                    </table>
+
+                    {% if shipment %}
+                    <h5 class="mb-3 mt-4">Shipment Details</h5>
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="150">Tracking Number:</th>
+                            <td><code>{{ shipment.tracking_no }}</code></td>
+                        </tr>
+                        {% if shipment.carrier %}
+                        <tr>
+                            <th>Carrier:</th>
+                            <td>{{ shipment.carrier }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if shipment.shipped_at %}
+                        <tr>
+                            <th>Shipped At:</th>
+                            <td>{{ shipment.shipped_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if shipment.shipping_address %}
+                        <tr>
+                            <th>Shipping Address:</th>
+                            <td>{{ shipment.shipping_address|linebreaks }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                    {% endif %}
+
+                    <h5 class="mb-3 mt-4">Order Items</h5>
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item</th>
+                                <th>SKU</th>
+                                <th class="text-end">Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order_item in order.items.all %}
+                            <tr>
+                                <td>{{ order_item.item.name }}</td>
+                                <td><code>{{ order_item.item.sku }}</code></td>
+                                <td class="text-end">{{ order_item.qty_requested }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'inventory:order-detail' order.pk %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle"></i> Mark as Delivered
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

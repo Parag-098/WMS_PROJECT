@@ -1,0 +1,103 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}Return Detail - {{ return_obj.return_no }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-arrow-return-left"></i> Return: {{ return_obj.return_no }}</h2>
+    
+    <hr>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <h5>Return Information</h5>
+            <table class="table table-sm">
+                <tr>
+                    <th>Return No.:</th>
+                    <td><strong>{{ return_obj.return_no }}</strong></td>
+                </tr>
+                <tr>
+                    <th>Status:</th>
+                    <td>
+                        {% if return_obj.status == 'pending' %}
+                            <span class="badge bg-warning">{{ return_obj.get_status_display }}</span>
+                        {% elif return_obj.status == 'restocked' %}
+                            <span class="badge bg-success">{{ return_obj.get_status_display }}</span>
+                        {% elif return_obj.status == 'scrapped' %}
+                            <span class="badge bg-danger">{{ return_obj.get_status_display }}</span>
+                        {% elif return_obj.status == 'quarantined' %}
+                            <span class="badge bg-secondary">{{ return_obj.get_status_display }}</span>
+                        {% else %}
+                            <span class="badge bg-info">{{ return_obj.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Quantity Returned:</th>
+                    <td>{{ return_obj.qty_returned }} {{ return_obj.order_item.item.unit }}</td>
+                </tr>
+                <tr>
+                    <th>Reason:</th>
+                    <td>{{ return_obj.get_reason_display }}</td>
+                </tr>
+                <tr>
+                    <th>Created:</th>
+                    <td>{{ return_obj.created_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% if return_obj.processed_at %}
+                <tr>
+                    <th>Processed:</th>
+                    <td>{{ return_obj.processed_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+        
+        <div class="col-md-6">
+            <h5>Order Details</h5>
+            <table class="table table-sm">
+                <tr>
+                    <th>Order No.:</th>
+                    <td>{{ return_obj.order_item.order.order_no }}</td>
+                </tr>
+                <tr>
+                    <th>Customer:</th>
+                    <td>{{ return_obj.order_item.order.customer_name }}</td>
+                </tr>
+                <tr>
+                    <th>Item SKU:</th>
+                    <td><strong>{{ return_obj.order_item.item.sku }}</strong></td>
+                </tr>
+                <tr>
+                    <th>Item Name:</th>
+                    <td>{{ return_obj.order_item.item.name }}</td>
+                </tr>
+                <tr>
+                    <th>Ordered Qty:</th>
+                    <td>{{ return_obj.order_item.qty_requested }} {{ return_obj.order_item.item.unit }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    {% if return_obj.notes %}
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <h5>Notes</h5>
+            <pre class="bg-light p-3 border">{{ return_obj.notes }}</pre>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        {% if return_obj.status == 'pending' %}
+            <a href="{% url 'inventory:return-process' return_obj.pk %}" class="btn btn-primary">
+                <i class="bi bi-gear"></i> Process Return
+            </a>
+        {% endif %}
+        <a href="{% url 'inventory:return-list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+{% endblock %}

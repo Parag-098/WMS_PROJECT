@@ -1,0 +1,50 @@
+{% if success %}
+<div class="alert alert-success">
+    <h5><i class="bi bi-check-circle"></i> Allocation Successful</h5>
+    <p>Order <strong>#{{ order.order_no }}</strong> allocated successfully.</p>
+    
+    {% if result.allocations %}
+    <hr>
+    <h6>Allocation Details:</h6>
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Requested</th>
+                <th>Allocated</th>
+                <th>Batch</th>
+                <th>Expiry</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alloc in result.allocations %}
+            <tr>
+                <td>{{ alloc.order_item.item.sku }}</td>
+                <td>{{ alloc.order_item.qty_ordered }}</td>
+                <td>{{ alloc.qty_allocated }}</td>
+                <td>{{ alloc.batch.lot_no }}</td>
+                <td>{{ alloc.batch.expiry_date|date:"Y-m-d" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    
+    {% if result.transactions %}
+    <p class="mb-0"><small>{{ result.transactions|length }} transaction(s) logged.</small></p>
+    {% endif %}
+</div>
+{% else %}
+<div class="alert alert-danger">
+    <h5><i class="bi bi-exclamation-triangle"></i> Allocation Failed</h5>
+    
+    {% if error_type == "not_found" %}
+        <p><strong>Order Not Found:</strong> {{ error_message }}</p>
+    {% elif error_type == "allocation_failed" %}
+        <p><strong>Insufficient Stock:</strong> {{ error_message }}</p>
+        <p class="mb-0">Please check inventory levels for the requested items.</p>
+    {% else %}
+        <p><strong>Error:</strong> {{ error_message }}</p>
+    {% endif %}
+</div>
+{% endif %}

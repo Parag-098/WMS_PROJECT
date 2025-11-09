@@ -1,0 +1,166 @@
+{% extends "inventory/base.html" %}
+
+{% block title %}{{ object.pk|default:"Create" }} Order - WMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{% if object.pk %}Edit{% else %}Create{% endif %} Order</h1>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <form method="post" id="order-form">
+                {% csrf_token %}
+                
+                <h4 class="mb-3">Order Information</h4>
+                
+                <div class="mb-3">
+                    <label for="{{ form.order_no.id_for_label }}" class="form-label">Order Number</label>
+                    {{ form.order_no }}
+                    {% if form.order_no.errors %}
+                        <div class="text-danger">{{ form.order_no.errors }}</div>
+                    {% endif %}
+                    <small class="form-text text-muted">Leave blank for auto-generation (format: ORD-YYYYMMDD-0001)</small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.customer_name.id_for_label }}" class="form-label">Customer Name</label>
+                    {{ form.customer_name }}
+                    {% if form.customer_name.errors %}
+                        <div class="text-danger">{{ form.customer_name.errors }}</div>
+                    {% endif %}
+                </div>
+
+                {% if form.status %}
+                <div class="mb-3">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                        <div class="text-danger">{{ form.status.errors }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <hr class="my-4">
+
+                <h4 class="mb-3">Order Items</h4>
+                
+                {{ orderitem_formset.management_form }}
+                
+                <div id="order-items-container">
+                    {% for item_form in orderitem_formset %}
+                    <div class="order-item-form border rounded p-3 mb-3" style="background-color: #f8f9fa;">
+                        {{ item_form.id }}
+                        {% if item_form.instance.pk %}{{ item_form.DELETE }}{% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Item <span class="text-danger">*</span></label>
+                                {{ item_form.item }}
+                                {% if item_form.item.errors %}
+                                    <div class="text-danger">{{ item_form.item.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                                {{ item_form.qty_requested }}
+                                {% if item_form.qty_requested.errors %}
+                                    <div class="text-danger">{{ item_form.qty_requested.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-2 d-flex align-items-end">
+                                {% if item_form.instance.pk %}
+                                <button type="button" class="btn btn-danger btn-sm remove-item">
+                                    <i class="bi bi-trash"></i> Remove
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" class="btn btn-success btn-sm mb-3" id="add-item">
+                    <i class="bi bi-plus-circle"></i> Add Another Item
+                </button>
+
+                {% if orderitem_formset.non_form_errors %}
+                <div class="alert alert-danger">
+                    {{ orderitem_formset.non_form_errors }}
+                </div>
+                {% endif %}
+
+                <hr class="my-4">
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> {% if object.pk %}Update{% else %}Create{% endif %} Order
+                    </button>
+                    <a href="{% url 'inventory:order-list' %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control, .form-select {
+        width: 100%;
+    }
+    .order-item-form {
+        position: relative;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('order-items-container');
+    const addButton = document.getElementById('add-item');
+    const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+    
+    let formIdx = parseInt(totalForms.value);
+    
+    addButton.addEventListener('click', function() {
+        const emptyForm = document.querySelector('.order-item-form').cloneNode(true);
+        
+        // Update form index in all field names and IDs
+        emptyForm.innerHTML = emptyForm.innerHTML.replace(/__prefix__/g, formIdx);
+        emptyForm.innerHTML = emptyForm.innerHTML.replace(/items-\d+-/g, `items-${formIdx}-`);
+        
+        // Clear values
+        emptyForm.querySelectorAll('input, select').forEach(field => {
+            if (field.type !== 'hidden' && !field.name.includes('TOTAL_FORMS') && !field.name.includes('INITIAL_FORMS')) {
+                field.value = '';
+            }
+        });
+        
+        // Remove delete checkbox if present
+        const deleteCheckbox = emptyForm.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        if (deleteCheckbox) {
+            deleteCheckbox.parentElement.remove();
+        }
+        
+        container.appendChild(emptyForm);
+        formIdx++;
+        totalForms.value = formIdx;
+    });
+    
+    // Handle remove buttons
+    container.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-item')) {
+            const form = e.target.closest('.order-item-form');
+            const deleteCheckbox = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = true;
+                form.style.display = 'none';
+            } else {
+                form.remove();
+                formIdx--;
+                totalForms.value = formIdx;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
