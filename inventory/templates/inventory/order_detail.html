@@ -26,32 +26,47 @@
                 <i class="bi bi-trash"></i> Delete
             </a>
             {% endif %}
+            {# === WORKFLOW BUTTONS === #}
             {% if order.status == 'new' %}
             <a href="{% url 'inventory:order-allocate' order.pk %}" class="btn btn-success">
-                <i class="bi bi-check-circle"></i> Allocate Stock
+                <i class="bi bi-check-circle"></i> Step 1: Allocate Stock
             </a>
+            
             {% elif order.status == 'allocated' %}
             <a href="{% url 'inventory:order-pick' order.pk %}" class="btn btn-warning">
-                <i class="bi bi-box-seam"></i> Pick
+                <i class="bi bi-box-seam"></i> Step 2: Pick Items
             </a>
             {% if user.is_staff %}
-            <a href="{% url 'inventory:order-deallocate' order.pk %}" class="btn btn-danger">
+            <a href="{% url 'inventory:order-deallocate' order.pk %}" class="btn btn-outline-danger">
                 <i class="bi bi-x-circle"></i> Deallocate
             </a>
             {% endif %}
+            
             {% elif order.status == 'picked' %}
             <a href="{% url 'inventory:order-pack' order.pk %}" class="btn btn-info">
-                <i class="bi bi-box"></i> Pack
+                <i class="bi bi-box"></i> Step 3: Pack Items
             </a>
             {% if user.is_staff %}
-            <a href="{% url 'inventory:order-ship' order.pk %}" class="btn btn-primary">
-                <i class="bi bi-truck"></i> Ship
+            <small class="text-muted ms-2">or</small>
+            <a href="{% url 'inventory:order-ship' order.pk %}" class="btn btn-outline-primary">
+                <i class="bi bi-truck"></i> Skip to Ship
             </a>
             {% endif %}
-            {% elif order.status == 'shipped' and user.is_staff %}
+            
+            {% elif order.status == 'shipped' %}
+            {% if user.is_staff %}
             <a href="{% url 'inventory:order-deliver' order.pk %}" class="btn btn-success">
-                <i class="bi bi-check-circle"></i> Mark as Delivered
+                <i class="bi bi-check-circle-fill"></i> Step 4: Mark as Delivered
             </a>
+            {% else %}
+            <span class="badge bg-primary fs-6"><i class="bi bi-truck"></i> In Transit</span>
+            {% endif %}
+            
+            {% elif order.status == 'delivered' %}
+            <span class="badge bg-success fs-6"><i class="bi bi-check-circle-fill"></i> Order Completed</span>
+            
+            {% elif order.status == 'cancelled' %}
+            <span class="badge bg-secondary fs-6"><i class="bi bi-x-circle-fill"></i> Order Cancelled</span>
             {% endif %}
         </div>
     </div>

@@ -86,6 +86,11 @@ def allocate_order(order_id: int, user=None) -> Dict[str, Any]:
         if items_fully_allocated == len(order_items):
             order.status = Order.STATUS_ALLOCATED
             order.save(update_fields=["status"])
+            Notification.objects.create(
+                user=user,
+                message=f"Order {order.order_no} fully allocated - ready for picking",
+                level=Notification.LEVEL_SUCCESS,
+            )
         elif items_failed == len(order_items):
             Notification.objects.create(
                 user=user,
@@ -94,9 +99,12 @@ def allocate_order(order_id: int, user=None) -> Dict[str, Any]:
             )
             raise AllocationError(f"Insufficient stock to allocate any items for order {order.order_no}")
         else:
+            # Partial allocation - still update status so workflow can proceed
+            order.status = Order.STATUS_ALLOCATED
+            order.save(update_fields=["status"])
             Notification.objects.create(
                 user=user,
-                message=f"Order {order.order_no} partially allocated: {items_fully_allocated}/{len(order_items)} items fully allocated",
+                message=f"Order {order.order_no} partially allocated: {items_fully_allocated}/{len(order_items)} items fully allocated. Proceeding with available stock.",
                 level=Notification.LEVEL_WARNING,
             )
 
