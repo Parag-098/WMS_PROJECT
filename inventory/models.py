@@ -47,7 +47,7 @@ class Item(models.Model):
 	  - total_quantity(): Returns the total available quantity across all non-expired batches.
 	"""
 
-	sku = models.CharField(max_length=64, unique=True)
+	sku = models.CharField(max_length=64, unique=True, blank=True)
 	name = models.CharField(max_length=255)
 	description = models.TextField(blank=True)
 	unit = models.CharField(max_length=16, default="pcs")
@@ -61,6 +61,34 @@ class Item(models.Model):
 
 	def __str__(self) -> str:  # pragma: no cover - trivial
 		return f"{self.sku} - {self.name}"
+	
+	def save(self, *args, **kwargs):
+		"""Auto-generate SKU if not provided."""
+		if not self.sku:
+			# Generate SKU based on name and counter
+			from datetime import datetime
+			import random
+			
+			# Create base from first 3 letters of name (uppercase)
+			name_part = ''.join(c for c in self.name if c.isalnum())[:3].upper()
+			if not name_part:
+				name_part = "ITM"
+			
+			# Add timestamp and random suffix
+			timestamp = datetime.now().strftime("%y%m%d")
+			random_suffix = ''.join([str(random.randint(0, 9)) for _ in range(3)])
+			
+			# Try to generate unique SKU
+			base_sku = f"{name_part}-{timestamp}-{random_suffix}"
+			self.sku = base_sku
+			
+			# Ensure uniqueness
+			counter = 1
+			while Item.objects.filter(sku=self.sku).exists():
+				self.sku = f"{base_sku}-{counter}"
+				counter += 1
+		
+		super().save(*args, **kwargs)
 
 	def total_quantity(self) -> Decimal:
 		"""Compute total available quantity across batches (ignoring expired/negative)."""

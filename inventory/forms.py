@@ -20,12 +20,22 @@ class ItemForm(forms.ModelForm):
         fields = ["sku", "name", "description", "unit", "reorder_threshold"]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 3}),
+            "sku": forms.TextInput(attrs={
+                "placeholder": "Leave blank to auto-generate (e.g., RIC-251109-345)",
+            }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make SKU optional - will auto-generate if blank
+        self.fields['sku'].required = False
 
     def clean_sku(self):
         sku = self.cleaned_data.get("sku", "").strip().upper()
+        
+        # If empty, return empty (model will auto-generate)
         if not sku:
-            raise ValidationError("SKU is required.")
+            return ""
 
         # Check uniqueness (excluding current instance if editing)
         qs = Item.objects.filter(sku=sku)

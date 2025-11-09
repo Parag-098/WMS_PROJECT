@@ -724,8 +724,11 @@ class PackView(UserPassesTestMixin, View):
                             "total_allocated": total_allocated,
                         })
                 
-                # Order remains in ALLOCATED status after packing
-                # (No STATUS_PACKED exists - goes from ALLOCATED to SHIPPED)
+                # Update order status to PICKED after packing
+                # This allows the workflow to proceed to shipping
+                if order.status == Order.STATUS_ALLOCATED:
+                    order.status = Order.STATUS_PICKED
+                    order.save(update_fields=["status"])
                 
                 # Add success message
                 from django.contrib import messages
@@ -734,9 +737,9 @@ class PackView(UserPassesTestMixin, View):
                     f"Successfully packed order {order.order_no}. Ready for shipment."
                 )
                 
-                # Redirect to ship view
+                # Redirect to order detail to show ship button
                 from django.shortcuts import redirect
-                return redirect('inventory:order-ship', order_id=order_id)
+                return redirect('inventory:order-detail', pk=order_id)
                 
         except Exception as e:
             context = {
